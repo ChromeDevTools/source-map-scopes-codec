@@ -2,7 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import { EmptyItem, type Item, OriginalScopeStartItem, Tag } from "../codec.ts";
+import {
+  EmptyItem,
+  EncodedTag,
+  type Item,
+  OriginalScopeStartItem,
+  Tag,
+} from "../codec.ts";
 import type {
   GeneratedRange,
   OriginalScope,
@@ -108,13 +114,17 @@ class Decoder {
     const iter = new TokenIterator(this.#encodedScopes);
 
     while (iter.hasNext()) {
-      switch (iter.nextChar()) {
-        case ",":
-          yield EmptyItem;
-          continue; // Important: Otherwise we could swallow "," that signify an EmptyItem.
+      if (iter.peek() === ",") {
+        iter.nextChar(); // Consume ",".
+        yield EmptyItem;
+        continue;
+      }
+
+      const tag = iter.nextUnsignedVLQ();
+      switch (tag) {
         case Tag.ORIGINAL_SCOPE_START: {
           yield {
-            tag: Tag.ORIGINAL_SCOPE_START,
+            tag,
             flags: iter.nextUnsignedVLQ(),
             line: iter.nextUnsignedVLQ(),
             column: iter.nextUnsignedVLQ(),
@@ -123,7 +133,7 @@ class Decoder {
         }
         case Tag.ORIGINAL_SCOPE_END: {
           yield {
-            tag: Tag.ORIGINAL_SCOPE_END,
+            tag,
             line: iter.nextUnsignedVLQ(),
             column: iter.nextUnsignedVLQ(),
           };

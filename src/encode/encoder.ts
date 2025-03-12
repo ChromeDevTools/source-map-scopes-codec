@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import { Tag } from "../codec.ts";
+import { EncodedTag } from "../codec.ts";
 import type { GeneratedRange, OriginalScope, ScopeInfo } from "../scopes.d.ts";
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
 
@@ -72,7 +72,7 @@ export class Encoder {
     this.#scopeState.line = line;
     this.#scopeState.column = column;
 
-    this.#encodeTag(Tag.ORIGINAL_SCOPE_START).#encodeUnsigned(flags)
+    this.#encodeTag(EncodedTag.ORIGINAL_SCOPE_START).#encodeUnsigned(flags)
       .#encodeUnsigned(encodedLine).#encodeUnsigned(column).#finishItem();
   }
 
@@ -85,7 +85,7 @@ export class Encoder {
     this.#scopeState.line = line;
     this.#scopeState.column = column;
 
-    this.#encodeTag(Tag.ORIGINAL_SCOPE_END).#encodeUnsigned(encodedLine)
+    this.#encodeTag(EncodedTag.ORIGINAL_SCOPE_END).#encodeUnsigned(encodedLine)
       .#encodeUnsigned(column).#finishItem();
   }
 
@@ -103,7 +103,7 @@ export class Encoder {
     }
   }
 
-  #encodeTag(tag: Tag): this {
+  #encodeTag(tag: EncodedTag): this {
     this.#currentItem += tag;
     return this;
   }
