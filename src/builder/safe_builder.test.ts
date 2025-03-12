@@ -25,6 +25,18 @@ describe("SafeScopeInfoBuilder", () => {
     assertThrows(() => builder.build());
   });
 
+  it("throws when trying to add a null scope with open OriginalScopes", () => {
+    builder.startScope(0, 0);
+
+    assertThrows(() => builder.addNullScope());
+  });
+
+  it("throws when trying t add a null scope with open GeneratedRanges", () => {
+    builder.startRange(0, 0);
+
+    assertThrows(() => builder.addNullScope());
+  });
+
   describe("startScope", () => {
     it("throws when trying to start a scope while building a range", () => {
       builder.startRange(0, 0);

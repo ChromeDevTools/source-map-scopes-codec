@@ -11,6 +11,14 @@ import { ScopeInfoBuilder } from "./builder.ts";
  * nested and don't partially overlap.
  */
 export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
+  override addNullScope(): this {
+    this.#verifyEmptyScopeStack("add null scope");
+    this.#verifyEmptyRangeStack("add null scope");
+
+    super.addNullScope();
+    return this;
+  }
+
   override startScope(line: number, column: number): this {
     this.#verifyEmptyRangeStack("start scope");
 
