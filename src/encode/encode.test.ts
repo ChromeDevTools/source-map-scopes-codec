@@ -52,14 +52,15 @@ describe("encode", () => {
   });
 
   it("throws when a child scope' start is not nested properly within its parent", () => {
-    builder.startScope(10, 0).startScope(0, 0).endScope(20, 0).endScope(30, 0);
+    const info = builder.startScope(10, 0).startScope(0, 0).endScope(20, 0)
+      .endScope(30, 0).build();
 
-    assertThrows(() => encode(builder.build()));
+    assertThrows(() => encode(info));
   });
 
   it("throws when a scopes' end precedes the scopes' start", () => {
-    builder.startScope(10, 0).endScope(0, 0);
+    const info = builder.startScope(10, 0).endScope(0, 0).build();
 
-    assertThrows(() => encode(builder.build()));
+    assertThrows(() => encode(info));
   });
 });
