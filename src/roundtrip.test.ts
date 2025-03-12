@@ -36,4 +36,24 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  it("handles two simple top-level OriginalScopes", () => {
+    builder.startScope(0, 0).endScope(10, 1);
+    builder.startScope(0, 0).endScope(15, 1);
+
+    assertCodec(builder.build());
+  });
+
+  it("handles a simple nested OriginalScope", () => {
+    builder.startScope(0, 0).startScope(5, 1).endScope(10, 1).endScope(15, 0);
+
+    assertCodec(builder.build());
+  });
+
+  it("handles multiple children of a top-level scope", () => {
+    builder.startScope(0, 0).startScope(5, 1).endScope(10, 1).startScope(15, 0)
+      .endScope(20, 0).endScope(25, 1);
+
+    assertCodec(builder.build());
+  });
 });
