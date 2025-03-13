@@ -92,7 +92,11 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     return this;
   }
 
-  override startRange(line: number, column: number): this {
+  override startRange(
+    line: number,
+    column: number,
+    options?: { scope?: number | OriginalScope },
+  ): this {
     this.#verifyEmptyScopeStack("starRange");
 
     const parent = this.rangeStack.at(-1);
@@ -114,7 +118,23 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
       );
     }
 
-    super.startRange(line, column);
+    if (
+      typeof options?.scope === "number" &&
+      !this.isValidScopeNumber(options.scope)
+    ) {
+      throw new Error(
+        `${options.scope} does not reference a valid OriginalScope`,
+      );
+    }
+    if (
+      typeof options?.scope === "object" && !this.isKnownScope(options.scope)
+    ) {
+      throw new Error(
+        "The provided definition scope was not produced by this builder!",
+      );
+    }
+
+    super.startRange(line, column, options);
     return this;
   }
 

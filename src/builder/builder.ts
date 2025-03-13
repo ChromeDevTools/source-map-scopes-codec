@@ -23,6 +23,7 @@ export class ScopeInfoBuilder {
 
   #scopeCounter = 0;
   #scopeToCount = new Map<OriginalScope, number>();
+  #countToScope = new Map<number, OriginalScope>();
   #lastScope: OriginalScope | null = null;
 
   addNullScope(): this {
@@ -50,7 +51,8 @@ export class ScopeInfoBuilder {
       scope.parent = this.#scopeStack.at(-1);
     }
     this.#scopeStack.push(scope);
-    this.#scopeToCount.set(scope, this.#scopeCounter++);
+    this.#scopeToCount.set(scope, this.#scopeCounter);
+    this.#countToScope.set(this.#scopeCounter++, scope);
 
     return this;
   }
@@ -103,7 +105,16 @@ export class ScopeInfoBuilder {
     return this.#lastScope;
   }
 
-  startRange(line: number, column: number): this {
+  /**
+   * @param option The definition 'scope' of this range can either be the "OriginalScope" directly
+   * (produced by this builder) or the scope's number.
+   * If a scope was started with the n-th call to `startScope` then n is the scope's number.
+   */
+  startRange(
+    line: number,
+    column: number,
+    options?: { scope?: number | OriginalScope },
+  ): this {
     const range: GeneratedRange = {
       start: { line, column },
       end: { line, column },
@@ -115,6 +126,12 @@ export class ScopeInfoBuilder {
 
     if (this.#rangeStack.length > 0) {
       range.parent = this.#rangeStack.at(-1);
+    }
+
+    if (typeof options?.scope === "number") {
+      range.originalScope = this.#countToScope.get(options.scope);
+    } else if (options?.scope !== undefined) {
+      range.originalScope = options.scope;
     }
 
     this.#rangeStack.push(range);
@@ -142,7 +159,9 @@ export class ScopeInfoBuilder {
 
     this.#scopes = [];
     this.#ranges = [];
+    this.#scopeCounter = 0;
     this.#scopeToCount.clear();
+    this.#countToScope.clear();
 
     return info;
   }
@@ -161,5 +180,13 @@ export class ScopeInfoBuilder {
 
   protected get ranges(): ReadonlyArray<GeneratedRange> {
     return this.#ranges;
+  }
+
+  protected isValidScopeNumber(n: number): boolean {
+    return this.#countToScope.has(n);
+  }
+
+  protected isKnownScope(scope: OriginalScope): boolean {
+    return this.#scopeToCount.has(scope);
   }
 }

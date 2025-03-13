@@ -4,7 +4,7 @@
 
 import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import { SafeScopeInfoBuilder } from "./safe_builder.ts";
-import { assertThrows } from "jsr:@std/assert";
+import { assert, assertThrows } from "jsr:@std/assert";
 
 describe("SafeScopeInfoBuilder", () => {
   let builder: SafeScopeInfoBuilder;
@@ -140,6 +140,24 @@ describe("SafeScopeInfoBuilder", () => {
       builder.startRange(0, 0).endRange(10, 5);
 
       builder.startRange(10, 5);
+    });
+
+    it("throws when the definition scope doesnt point to a valid scope", () => {
+      assertThrows(() => builder.startRange(0, 0, { scope: 0 }));
+    });
+
+    it("throws when the definition scope is not known to the builder", () => {
+      assertThrows(() =>
+        builder.startRange(0, 0, {
+          scope: {
+            start: { line: 0, column: 0 },
+            end: { line: 10, column: 10 },
+            isStackFrame: false,
+            variables: [],
+            children: [],
+          },
+        })
+      );
     });
   });
 
