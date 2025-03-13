@@ -29,14 +29,14 @@ export class ScopeInfoBuilder {
   startScope(
     line: number,
     column: number,
-    options?: { name?: string; kind?: string },
+    options?: { name?: string; kind?: string; isStackFrame?: boolean },
   ): this {
     const scope: OriginalScope = {
       start: { line, column },
       end: { line, column },
       variables: [],
       children: [],
-      isStackFrame: false,
+      isStackFrame: Boolean(options?.isStackFrame),
     };
 
     if (options?.name !== undefined) scope.name = options.name;
@@ -59,6 +59,12 @@ export class ScopeInfoBuilder {
   setScopeKind(kind: string): this {
     const scope = this.#scopeStack.at(-1);
     if (scope) scope.kind = kind;
+    return this;
+  }
+
+  setStackFrame(isStackFrame: boolean): this {
+    const scope = this.#scopeStack.at(-1);
+    if (scope) scope.isStackFrame = isStackFrame;
     return this;
   }
 

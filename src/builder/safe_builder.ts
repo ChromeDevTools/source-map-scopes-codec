@@ -62,6 +62,14 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     return this;
   }
 
+  override setStackFrame(isStackFrame: boolean): this {
+    this.#verifyScopePresent("setStackFrame");
+    this.#verifyEmptyRangeStack("setStackFrame");
+
+    super.setStackFrame(isStackFrame);
+    return this;
+  }
+
   override endScope(line: number, column: number): this {
     this.#verifyEmptyRangeStack("end scope");
 

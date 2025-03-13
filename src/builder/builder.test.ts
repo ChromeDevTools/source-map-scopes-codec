@@ -49,6 +49,15 @@ describe("ScopeInfoBuilder", () => {
     assertStrictEquals(info.scopes[0]?.kind, "Global");
   });
 
+  it("can set isStackFrame via option", () => {
+    const info = builder.startScope(0, 0, { isStackFrame: true }).endScope(
+      10,
+      0,
+    ).build();
+
+    assertStrictEquals(info.scopes[0]?.isStackFrame, true);
+  });
+
   describe("setScopeName", () => {
     it("sets the name", () => {
       const info = builder.startScope(0, 0).setScopeName("foo").endScope(5, 0)
@@ -74,6 +83,15 @@ describe("ScopeInfoBuilder", () => {
 
     it("does nothing when no scope is open", () => {
       builder.setScopeKind("Function");
+    });
+  });
+
+  describe("setStackFrame", () => {
+    it("sets the isStackFrame flag", () => {
+      const info = builder.startScope(0, 0).setStackFrame(true).endScope(10, 0)
+        .build();
+
+      assertStrictEquals(info.scopes[0]?.isStackFrame, true);
     });
   });
 });
