@@ -26,7 +26,11 @@ export class ScopeInfoBuilder {
     return this;
   }
 
-  startScope(line: number, column: number, options?: { name?: string }): this {
+  startScope(
+    line: number,
+    column: number,
+    options?: { name?: string; kind?: string },
+  ): this {
     const scope: OriginalScope = {
       start: { line, column },
       end: { line, column },
@@ -36,6 +40,7 @@ export class ScopeInfoBuilder {
     };
 
     if (options?.name !== undefined) scope.name = options.name;
+    if (options?.kind !== undefined) scope.kind = options.kind;
 
     if (this.#scopeStack.length > 0) {
       scope.parent = this.#scopeStack.at(-1);
@@ -48,6 +53,12 @@ export class ScopeInfoBuilder {
   setScopeName(name: string): this {
     const scope = this.#scopeStack.at(-1);
     if (scope) scope.name = name;
+    return this;
+  }
+
+  setScopeKind(kind: string): this {
+    const scope = this.#scopeStack.at(-1);
+    if (scope) scope.kind = kind;
     return this;
   }
 

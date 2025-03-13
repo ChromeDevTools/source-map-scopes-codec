@@ -75,6 +75,18 @@ describe("SafeScopeInfoBuilder", () => {
     });
   });
 
+  describe("setScopeKind", () => {
+    it("throws when no scope is on open", () => {
+      assertThrows(() => builder.setScopeKind("Global"));
+    });
+
+    it("throws while building a range", () => {
+      builder.startRange(0, 0);
+
+      assertThrows(() => builder.setScopeKind("Global"));
+    });
+  });
+
   describe("endScope", () => {
     it("throws when the scope stack is empty", () => {
       assertThrows(() => builder.endScope(5, 0));

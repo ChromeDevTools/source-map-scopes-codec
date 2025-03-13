@@ -54,6 +54,14 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     return this;
   }
 
+  override setScopeKind(kind: string): this {
+    this.#verifyScopePresent("setScopeKind");
+    this.#verifyEmptyRangeStack("setScopeKind");
+
+    super.setScopeKind(kind);
+    return this;
+  }
+
   override endScope(line: number, column: number): this {
     this.#verifyEmptyRangeStack("end scope");
 
