@@ -95,7 +95,11 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
   override startRange(
     line: number,
     column: number,
-    options?: { scope?: number | OriginalScope },
+    options?: {
+      scope?: number | OriginalScope;
+      isStackFrame?: boolean;
+      isHidden?: boolean;
+    },
   ): this {
     this.#verifyEmptyScopeStack("starRange");
 
