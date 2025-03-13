@@ -79,9 +79,18 @@ export class Encoder {
       this.#scopeState.name = nameIdx;
     }
 
+    let encodedKind: number | undefined;
+    if (scope.kind !== undefined) {
+      flags |= OriginalScopeFlags.HAS_KIND;
+      const kindIdx = this.#resolveNamesIdx(scope.kind);
+      encodedKind = kindIdx - this.#scopeState.kind;
+      this.#scopeState.kind = kindIdx;
+    }
+
     this.#encodeTag(EncodedTag.ORIGINAL_SCOPE_START).#encodeUnsigned(flags)
       .#encodeUnsigned(encodedLine).#encodeUnsigned(column);
     if (encodedName !== undefined) this.#encodeSigned(encodedName);
+    if (encodedKind !== undefined) this.#encodeSigned(encodedKind);
     this.#finishItem();
   }
 

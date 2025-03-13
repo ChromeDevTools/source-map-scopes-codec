@@ -63,4 +63,12 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  it("handles scope kinds", () => {
+    builder.startScope(0, 0, { kind: "Global" }).startScope(10, 0, {
+      kind: "Function",
+    }).endScope(20, 0).endScope(30, 0);
+
+    assertCodec(builder.build());
+  });
 });

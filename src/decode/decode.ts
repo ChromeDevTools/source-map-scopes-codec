@@ -78,6 +78,10 @@ class Decoder {
             this.#scopeState.name += item.nameIdx;
             scope.name = this.#names[this.#scopeState.name];
           }
+          if (item.kindIdx !== undefined) {
+            this.#scopeState.kind += item.kindIdx;
+            scope.kind = this.#names[this.#scopeState.kind];
+          }
 
           this.#scopeStack.push(scope);
           break;
@@ -137,6 +141,9 @@ class Decoder {
 
           if (item.flags & OriginalScopeFlags.HAS_NAME) {
             item.nameIdx = iter.nextSignedVLQ();
+          }
+          if (item.flags & OriginalScopeFlags.HAS_KIND) {
+            item.kindIdx = iter.nextSignedVLQ();
           }
 
           yield item;

@@ -16,6 +16,7 @@ export const enum EncodedTag {
 
 export const enum OriginalScopeFlags {
   HAS_NAME = 0x1,
+  HAS_KIND = 0x2,
 }
 
 export const EmptyItem = Symbol("empty item");
