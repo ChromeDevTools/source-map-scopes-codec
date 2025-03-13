@@ -21,6 +21,10 @@ export class ScopeInfoBuilder {
   #scopeStack: OriginalScope[] = [];
   #rangeStack: GeneratedRange[] = [];
 
+  #scopeCounter = 0;
+  #scopeToCount = new Map<OriginalScope, number>();
+  #lastScope: OriginalScope | null = null;
+
   addNullScope(): this {
     this.#scopes.push(null);
     return this;
@@ -46,6 +50,7 @@ export class ScopeInfoBuilder {
       scope.parent = this.#scopeStack.at(-1);
     }
     this.#scopeStack.push(scope);
+    this.#scopeToCount.set(scope, this.#scopeCounter++);
 
     return this;
   }
@@ -79,8 +84,23 @@ export class ScopeInfoBuilder {
     } else {
       this.#scopeStack.at(-1)!.children.push(scope);
     }
+    this.#lastScope = scope;
 
     return this;
+  }
+
+  /**
+   * @returns The OriginalScope opened with the most recent `startScope` call, but not yet closed.
+   */
+  currentScope(): OriginalScope | null {
+    return this.#scopeStack.at(-1) ?? null;
+  }
+
+  /**
+   * @returns The most recent OriginalScope closed with `endScope`.
+   */
+  lastScope(): OriginalScope | null {
+    return this.#lastScope;
   }
 
   startRange(line: number, column: number): this {
@@ -122,6 +142,7 @@ export class ScopeInfoBuilder {
 
     this.#scopes = [];
     this.#ranges = [];
+    this.#scopeToCount.clear();
 
     return info;
   }

@@ -4,7 +4,11 @@
 
 import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import { ScopeInfoBuilder } from "./builder.ts";
-import { assertEquals, assertStrictEquals } from "jsr:@std/assert";
+import {
+  assertEquals,
+  assertNotStrictEquals,
+  assertStrictEquals,
+} from "jsr:@std/assert";
 
 describe("ScopeInfoBuilder", () => {
   let builder: ScopeInfoBuilder;
@@ -124,6 +128,51 @@ describe("ScopeInfoBuilder", () => {
   describe("endRange", () => {
     it("does nothing when no range is open", () => {
       builder.endRange(0, 20);
+    });
+  });
+
+  describe("currentScope", () => {
+    it("returns 'null' when no scope is on the stack", () => {
+      assertStrictEquals(builder.currentScope(), null);
+    });
+
+    it("returns the currently open scope (top-level)", () => {
+      builder.startScope(0, 0);
+
+      assertNotStrictEquals(builder.currentScope(), null);
+    });
+
+    it("returns the currently open scope (nested)", () => {
+      builder.startScope(0, 0).startScope(10, 0);
+
+      assertEquals(builder.currentScope()?.start, { line: 10, column: 0 });
+    });
+  });
+
+  describe("lastScope", () => {
+    it("returns 'null' when no scope was closed yet", () => {
+      assertStrictEquals(builder.lastScope(), null);
+    });
+
+    it("returns the last closed scope (top-level)", () => {
+      builder.startScope(0, 0).endScope(10, 0);
+
+      assertNotStrictEquals(builder.lastScope(), null);
+    });
+
+    it("returns the last closed scope (nested)", () => {
+      builder.startScope(0, 0).startScope(10, 0).endScope(20, 0);
+
+      assertEquals(builder.lastScope()?.start, { line: 10, column: 0 });
+    });
+
+    it("returns the last closed scope after starting new ones", () => {
+      builder.startScope(0, 0).startScope(10, 0).endScope(20, 0).startScope(
+        30,
+        0,
+      );
+
+      assertEquals(builder.lastScope()?.start, { line: 10, column: 0 });
     });
   });
 });
