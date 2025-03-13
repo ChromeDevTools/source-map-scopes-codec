@@ -101,4 +101,23 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  it("handles a single GeneratedRange with a definition scope", () => {
+    builder.startScope(0, 0).endScope(10, 0).startRange(0, 0, { scope: 0 })
+      .endRange(0, 10);
+
+    assertCodec(builder.build());
+  });
+
+  it("handles multiple GeneratedRanges with different definition scopes", () => {
+    builder.startScope(0, 0).endScope(10, 0).startScope(0, 0).endScope(20, 0)
+      .startRange(0, 0)
+      .startRange(0, 10, { scope: 0 })
+      .endRange(0, 40)
+      .startRange(0, 50, { scope: 1 })
+      .endRange(0, 80)
+      .endRange(0, 100);
+
+    assertCodec(builder.build());
+  });
 });

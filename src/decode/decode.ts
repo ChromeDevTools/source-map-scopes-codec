@@ -52,6 +52,9 @@ class Decoder {
   readonly #scopeStack: OriginalScope[] = [];
   readonly #rangeStack: GeneratedRange[] = [];
 
+  readonly #countToScope = new Map<number, OriginalScope>();
+  #scopeCounter = 0;
+
   constructor(scopes: string, names: string[]) {
     this.#encodedScopes = scopes;
     this.#names = names;
@@ -89,6 +92,7 @@ class Decoder {
           );
 
           this.#scopeStack.push(scope);
+          this.#countToScope.set(this.#scopeCounter++, scope);
           break;
         }
         case Tag.ORIGINAL_SCOPE_END: {
@@ -136,6 +140,14 @@ class Decoder {
             children: [],
           };
 
+          if (item.definitionIdx !== undefined) {
+            this.#rangeState.defScopeIdx += item.definitionIdx;
+            range.originalScope = this.#countToScope.get(
+              this.#rangeState.defScopeIdx,
+            );
+            // TODO: Maybe throw if the idx is invalid?
+          }
+
           this.#rangeStack.push(range);
           break;
         }
@@ -176,6 +188,8 @@ class Decoder {
 
     this.#scopes = [];
     this.#ranges = [];
+    this.#scopeCounter = 0;
+    this.#countToScope.clear();
 
     return info;
   }
@@ -223,12 +237,18 @@ class Decoder {
           const line = flags & GeneratedRangeFlags.HAS_LINE
             ? iter.nextUnsignedVLQ()
             : undefined;
+          const column = iter.nextUnsignedVLQ();
+
+          const definitionIdx = flags & GeneratedRangeFlags.HAS_DEFINITION
+            ? iter.nextSignedVLQ()
+            : undefined;
 
           yield {
             tag,
             flags,
             line,
-            column: iter.nextUnsignedVLQ(),
+            column,
+            definitionIdx,
           };
           break;
         }

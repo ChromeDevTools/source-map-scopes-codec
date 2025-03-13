@@ -58,6 +58,7 @@ interface GeneratedRangeStartItem {
   flags: number;
   line?: number;
   column: number;
+  definitionIdx?: number;
 }
 
 interface GeneratedRangeEndItem {
