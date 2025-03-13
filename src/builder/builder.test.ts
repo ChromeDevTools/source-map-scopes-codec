@@ -110,6 +110,17 @@ describe("ScopeInfoBuilder", () => {
     assertEquals(info.ranges[0]?.end, { line: 0, column: 20 });
   });
 
+  it("builds a simple nested range", () => {
+    const info = builder.startRange(0, 0).startRange(5, 0).endRange(10, 0)
+      .endRange(15, 0).build();
+
+    assertStrictEquals(info.ranges[0]?.children.length, 1);
+    assertEquals(info.ranges[0].children[0].start, { line: 5, column: 0 });
+    assertEquals(info.ranges[0].children[0].end, { line: 10, column: 0 });
+
+    assertStrictEquals(info.ranges[0], info.ranges[0].children[0].parent);
+  });
+
   describe("endRange", () => {
     it("does nothing when no range is open", () => {
       builder.endRange(0, 20);
