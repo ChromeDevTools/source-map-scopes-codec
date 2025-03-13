@@ -170,6 +170,14 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     return this;
   }
 
+  override setRangeHidden(isHidden: boolean): this {
+    this.#verifyEmptyScopeStack("setRangeHidden");
+    this.#verifyRangePresent("setRangeHidden");
+
+    super.setRangeHidden(isHidden);
+    return this;
+  }
+
   override endRange(line: number, column: number): this {
     this.#verifyEmptyScopeStack("endRange");
 

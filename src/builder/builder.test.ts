@@ -154,6 +154,15 @@ describe("ScopeInfoBuilder", () => {
 
       assertStrictEquals(info.ranges[0]?.isStackFrame, true);
     });
+
+    it("can set isHidden via option", () => {
+      const info = builder.startRange(0, 0, { isHidden: true }).endRange(
+        10,
+        0,
+      ).build();
+
+      assertStrictEquals(info.ranges[0]?.isHidden, true);
+    });
   });
 
   describe("setRangeDefinitionScope", () => {
@@ -179,10 +188,20 @@ describe("ScopeInfoBuilder", () => {
       const info = builder.startRange(0, 0).setRangeStackFrame(true).endRange(
         10,
         0,
-      )
-        .build();
+      ).build();
 
       assertStrictEquals(info.ranges[0]?.isStackFrame, true);
+    });
+  });
+
+  describe("setRangeHidden", () => {
+    it("sets the isHidden flag", () => {
+      const info = builder.startRange(0, 0).setRangeHidden(true).endRange(
+        10,
+        0,
+      ).build();
+
+      assertStrictEquals(info.ranges[0]?.isHidden, true);
     });
   });
 

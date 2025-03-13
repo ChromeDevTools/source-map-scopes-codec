@@ -113,13 +113,17 @@ export class ScopeInfoBuilder {
   startRange(
     line: number,
     column: number,
-    options?: { scope?: number | OriginalScope; isStackFrame?: boolean },
+    options?: {
+      scope?: number | OriginalScope;
+      isStackFrame?: boolean;
+      isHidden?: boolean;
+    },
   ): this {
     const range: GeneratedRange = {
       start: { line, column },
       end: { line, column },
       isStackFrame: Boolean(options?.isStackFrame),
-      isHidden: false,
+      isHidden: Boolean(options?.isHidden),
       values: [],
       children: [],
     };
@@ -155,6 +159,13 @@ export class ScopeInfoBuilder {
   setRangeStackFrame(isStackFrame: boolean): this {
     const range = this.#rangeStack.at(-1);
     if (range) range.isStackFrame = isStackFrame;
+
+    return this;
+  }
+
+  setRangeHidden(isHidden: boolean): this {
+    const range = this.#rangeStack.at(-1);
+    if (range) range.isHidden = isHidden;
 
     return this;
   }
