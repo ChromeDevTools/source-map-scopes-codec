@@ -26,7 +26,7 @@ export class ScopeInfoBuilder {
     return this;
   }
 
-  startScope(line: number, column: number): this {
+  startScope(line: number, column: number, options?: { name?: string }): this {
     const scope: OriginalScope = {
       start: { line, column },
       end: { line, column },
@@ -35,11 +35,19 @@ export class ScopeInfoBuilder {
       isStackFrame: false,
     };
 
+    if (options?.name !== undefined) scope.name = options.name;
+
     if (this.#scopeStack.length > 0) {
       scope.parent = this.#scopeStack.at(-1);
     }
     this.#scopeStack.push(scope);
 
+    return this;
+  }
+
+  setScopeName(name: string): this {
+    const scope = this.#scopeStack.at(-1);
+    if (scope) scope.name = name;
     return this;
   }
 

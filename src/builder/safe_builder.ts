@@ -46,6 +46,14 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     return this;
   }
 
+  override setScopeName(name: string): this {
+    this.#verifyScopePresent("setScopeName");
+    this.#verifyEmptyRangeStack("setScopeName");
+
+    super.setScopeName(name);
+    return this;
+  }
+
   override endScope(line: number, column: number): this {
     this.#verifyEmptyRangeStack("end scope");
 
@@ -91,6 +99,12 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
   #verifyEmptyRangeStack(op: string): void {
     if (this.rangeStack.length > 0) {
       throw new Error(`Can't ${op} while a GeneratedRange is unclosed.`);
+    }
+  }
+
+  #verifyScopePresent(op: string): void {
+    if (this.scopeStack.length === 0) {
+      throw new Error(`Can't ${op} while no OriginalScope is on the stack.`);
     }
   }
 }

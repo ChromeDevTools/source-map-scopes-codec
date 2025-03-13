@@ -63,6 +63,18 @@ describe("SafeScopeInfoBuilder", () => {
     });
   });
 
+  describe("setScopeName", () => {
+    it("throws when no scope is on open", () => {
+      assertThrows(() => builder.setScopeName("foo"));
+    });
+
+    it("throws while building a range", () => {
+      builder.startRange(0, 0);
+
+      assertThrows(() => builder.setScopeName("foo"));
+    });
+  });
+
   describe("endScope", () => {
     it("throws when the scope stack is empty", () => {
       assertThrows(() => builder.endScope(5, 0));

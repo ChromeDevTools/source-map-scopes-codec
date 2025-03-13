@@ -34,4 +34,24 @@ describe("ScopeInfoBuilder", () => {
     assertEquals(info.scopes[0].children[0].start, { line: 5, column: 0 });
     assertEquals(info.scopes[0].children[0].end, { line: 10, column: 0 });
   });
+
+  it("can set the name via option", () => {
+    const info = builder.startScope(0, 0, { name: "foo" }).endScope(5, 0)
+      .build();
+
+    assertStrictEquals(info.scopes[0]?.name, "foo");
+  });
+
+  describe("setScopeName", () => {
+    it("sets the name", () => {
+      const info = builder.startScope(0, 0).setScopeName("foo").endScope(5, 0)
+        .build();
+
+      assertStrictEquals(info.scopes[0]?.name, "foo");
+    });
+
+    it("does nothing when no scope is open", () => {
+      builder.setScopeName("ignored");
+    });
+  });
 });
