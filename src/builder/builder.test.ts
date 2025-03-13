@@ -144,6 +144,24 @@ describe("ScopeInfoBuilder", () => {
     });
   });
 
+  describe("setRangeDefinitionScope", () => {
+    it("sets the definition scope when it's provided as a number", () => {
+      const info = builder.startScope(0, 0).endScope(10, 0).startRange(0, 0)
+        .setRangeDefinitionScope(0).endRange(0, 10).build();
+
+      assertStrictEquals(info.scopes[0], info.ranges[0].originalScope);
+    });
+
+    it("sets the definition scope when it's provided directly", () => {
+      const scope = builder.startScope(0, 0).endScope(10, 0).lastScope();
+      const info = builder.startRange(0, 0).setRangeDefinitionScope(scope!)
+        .endRange(0, 10).build();
+
+      assertStrictEquals(info.scopes[0], info.ranges[0].originalScope);
+      assertStrictEquals(info.ranges[0].originalScope, scope);
+    });
+  });
+
   describe("endRange", () => {
     it("does nothing when no range is open", () => {
       builder.endRange(0, 20);

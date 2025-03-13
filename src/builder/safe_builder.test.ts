@@ -161,6 +161,34 @@ describe("SafeScopeInfoBuilder", () => {
     });
   });
 
+  describe("setRangeDefinitionScope", () => {
+    it("throws when no range is open", () => {
+      assertThrows(() => builder.setRangeDefinitionScope(0));
+    });
+
+    it("throws while building a scope", () => {
+      builder.startScope(0, 0);
+
+      assertThrows(() => builder.setRangeDefinitionScope(0));
+    });
+
+    it("throws when the definition scope doesnt point to a valid scope", () => {
+      assertThrows(() => builder.startRange(0, 0).setRangeDefinitionScope(0));
+    });
+
+    it("throws when the definition scope is not known to the builder", () => {
+      assertThrows(() =>
+        builder.startRange(0, 0).setRangeDefinitionScope({
+          start: { line: 0, column: 0 },
+          end: { line: 10, column: 10 },
+          isStackFrame: false,
+          variables: [],
+          children: [],
+        })
+      );
+    });
+  });
+
   describe("endRange", () => {
     it("throws when the range stack is empty", () => {
       assertThrows(() => builder.endRange(5, 0));

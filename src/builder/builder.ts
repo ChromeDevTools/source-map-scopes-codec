@@ -139,6 +139,19 @@ export class ScopeInfoBuilder {
     return this;
   }
 
+  setRangeDefinitionScope(scope: number | OriginalScope): this {
+    const range = this.#rangeStack.at(-1);
+    if (!range) return this;
+
+    if (typeof scope === "number") {
+      range.originalScope = this.#countToScope.get(scope);
+    } else {
+      range.originalScope = scope;
+    }
+
+    return this;
+  }
+
   endRange(line: number, column: number): this {
     const range = this.#rangeStack.pop();
     if (!range) return this;

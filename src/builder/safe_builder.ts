@@ -138,6 +138,30 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     return this;
   }
 
+  override setRangeDefinitionScope(scope: number | OriginalScope): this {
+    this.#verifyEmptyScopeStack("setRangeDefinitionScope");
+    this.#verifyRangePresent("setRangeDefinitionScope");
+
+    if (
+      typeof scope === "number" &&
+      !this.isValidScopeNumber(scope)
+    ) {
+      throw new Error(
+        `${scope} does not reference a valid OriginalScope`,
+      );
+    }
+    if (
+      typeof scope === "object" && !this.isKnownScope(scope)
+    ) {
+      throw new Error(
+        "The provided definition scope was not produced by this builder!",
+      );
+    }
+
+    super.setRangeDefinitionScope(scope);
+    return this;
+  }
+
   override endRange(line: number, column: number): this {
     this.#verifyEmptyScopeStack("endRange");
 
@@ -182,6 +206,12 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
   #verifyScopePresent(op: string): void {
     if (this.scopeStack.length === 0) {
       throw new Error(`Can't ${op} while no OriginalScope is on the stack.`);
+    }
+  }
+
+  #verifyRangePresent(op: string): void {
+    if (this.rangeStack.length === 0) {
+      throw new Error(`Can't ${op} while no GeneratedRange is on the stack.`);
     }
   }
 }
