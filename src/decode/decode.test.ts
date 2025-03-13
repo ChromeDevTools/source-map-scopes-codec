@@ -9,6 +9,7 @@ import {
   assertEquals,
   assertExists,
   assertStrictEquals,
+  assertThrows,
 } from "jsr:@std/assert";
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
 import { decode } from "./decode.ts";
@@ -139,5 +140,13 @@ describe("decode", () => {
 
     assertExists(info.scopes[0]);
     assertStrictEquals(info.scopes[0].kind, undefined);
+  });
+
+  it("throws when encountering an ORIGINAL_SCOPE_END without start", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 0, 0).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    assertThrows(() => decode(map));
   });
 });
