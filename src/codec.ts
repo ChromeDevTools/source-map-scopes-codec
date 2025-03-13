@@ -33,9 +33,9 @@ export const EmptyItem = Symbol("empty item");
 export type Item =
   | typeof EmptyItem
   | OriginalScopeStartItem
-  | OriginalScopeEndItem;
-// | GeneratedStartItem
-// | GeneratedEndItem
+  | OriginalScopeEndItem
+  | GeneratedRangeStartItem
+  | GeneratedRangeEndItem;
 // | VariablesItem
 // | BindingsItem;
 
@@ -51,5 +51,18 @@ export interface OriginalScopeStartItem {
 interface OriginalScopeEndItem {
   tag: Tag.ORIGINAL_SCOPE_END;
   line: number;
+  column: number;
+}
+
+interface GeneratedRangeStartItem {
+  tag: Tag.GENERATED_RANGE_START;
+  flags: number;
+  line?: number;
+  column: number;
+}
+
+interface GeneratedRangeEndItem {
+  tag: Tag.GENERATED_RANGE_END;
+  line?: number;
   column: number;
 }

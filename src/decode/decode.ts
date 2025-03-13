@@ -4,6 +4,7 @@
 
 import {
   EmptyItem,
+  GeneratedRangeFlags,
   type Item,
   OriginalScopeFlags,
   type OriginalScopeStartItem,
@@ -112,6 +113,62 @@ class Decoder {
           }
           break;
         }
+        case Tag.GENERATED_RANGE_START: {
+          if (item.line !== undefined) {
+            this.#rangeState.line += item.line;
+            this.#rangeState.column = item.column;
+          } else {
+            this.#rangeState.column += item.column;
+          }
+
+          const range: GeneratedRange = {
+            start: {
+              line: this.#rangeState.line,
+              column: this.#rangeState.column,
+            },
+            end: {
+              line: this.#rangeState.line,
+              column: this.#rangeState.column,
+            },
+            isStackFrame: false,
+            isHidden: false,
+            values: [],
+            children: [],
+          };
+
+          this.#rangeStack.push(range);
+          break;
+        }
+        case Tag.GENERATED_RANGE_END: {
+          if (item.line !== undefined) {
+            this.#rangeState.line += item.line;
+            this.#rangeState.column = item.column;
+          } else {
+            this.#rangeState.column += item.column;
+          }
+
+          const range = this.#rangeStack.pop();
+          if (!range) {
+            throw new Error(
+              "Encountered GENERATED_RANGE_END wtihout matching GENERATED_RANGE_START!",
+            );
+          }
+
+          range.end = {
+            line: this.#rangeState.line,
+            column: this.#rangeState.column,
+          };
+
+          if (this.#rangeStack.length > 0) {
+            const parent = this.#rangeStack.at(-1)!;
+            range.parent = parent;
+            parent.children.push(range);
+          } else {
+            this.#ranges.push(range);
+            Object.assign(this.#rangeState, DEFAULT_RANGE_STATE);
+          }
+          break;
+        }
       }
     }
 
@@ -159,6 +216,33 @@ class Decoder {
             line: iter.nextUnsignedVLQ(),
             column: iter.nextUnsignedVLQ(),
           };
+          break;
+        }
+        case Tag.GENERATED_RANGE_START: {
+          const flags = iter.nextUnsignedVLQ();
+          const line = flags & GeneratedRangeFlags.HAS_LINE
+            ? iter.nextUnsignedVLQ()
+            : undefined;
+
+          yield {
+            tag,
+            flags,
+            line,
+            column: iter.nextUnsignedVLQ(),
+          };
+          break;
+        }
+        case Tag.GENERATED_RANGE_END: {
+          const lineOrColumn = iter.nextUnsignedVLQ();
+          const maybeColumn = iter.hasNext() && iter.peek() !== ","
+            ? iter.nextUnsignedVLQ()
+            : undefined;
+
+          if (maybeColumn !== undefined) {
+            yield { tag, line: lineOrColumn, column: maybeColumn };
+          } else {
+            yield { tag, column: lineOrColumn };
+          }
           break;
         }
       }

@@ -77,4 +77,28 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  it("handles a single top-level GeneratedRange on the same line", () => {
+    builder.startRange(0, 5).endRange(0, 10);
+
+    assertCodec(builder.build());
+  });
+
+  it("handles a single top-level GeneratedRange that spans multiple lines", () => {
+    builder.startRange(0, 5).endRange(10, 2);
+
+    assertCodec(builder.build());
+  });
+
+  it("handles multiple top-level GeneratedRagnes on the same line", () => {
+    builder.startRange(0, 5).endRange(0, 10).startRange(0, 20).endRange(0, 30);
+
+    assertCodec(builder.build());
+  });
+
+  it("handles multiple top-level GeneratedRanges that span multiple lines", () => {
+    builder.startRange(0, 1).endRange(10, 2).startRange(20, 3).endRange(30, 4);
+
+    assertCodec(builder.build());
+  });
 });

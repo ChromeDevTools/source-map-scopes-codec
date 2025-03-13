@@ -84,15 +84,20 @@ export class ScopeInfoBuilder {
   }
 
   startRange(line: number, column: number): this {
-    this.#rangeStack.push({
+    const range: GeneratedRange = {
       start: { line, column },
       end: { line, column },
       isStackFrame: false,
       isHidden: false,
       values: [],
       children: [],
-      parent: this.#rangeStack.at(-1),
-    });
+    };
+
+    if (this.#rangeStack.length > 0) {
+      range.parent = this.#rangeStack.at(-1);
+    }
+
+    this.#rangeStack.push(range);
 
     return this;
   }
