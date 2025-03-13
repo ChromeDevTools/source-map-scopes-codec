@@ -19,7 +19,11 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     return this;
   }
 
-  override startScope(line: number, column: number): this {
+  override startScope(
+    line: number,
+    column: number,
+    options?: { name?: string; kind?: string; isStackFrame?: boolean },
+  ): this {
     this.#verifyEmptyRangeStack("start scope");
 
     const parent = this.scopeStack.at(-1);
@@ -42,7 +46,7 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
       );
     }
 
-    super.startScope(line, column);
+    super.startScope(line, column, options);
     return this;
   }
 
@@ -89,7 +93,26 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
   }
 
   override startRange(line: number, column: number): this {
-    this.#verifyEmptyScopeStack("start range");
+    this.#verifyEmptyScopeStack("starRange");
+
+    const parent = this.rangeStack.at(-1);
+    if (parent && comparePositions(parent.start, { line, column }) > 0) {
+      throw new Error(
+        `Range start (${line}, ${column}) must not precede parent start (${parent.start.line}, ${parent.start.column})`,
+      );
+    }
+
+    const precedingSibling = parent?.children.at(-1);
+    if (
+      precedingSibling &&
+      comparePositions(precedingSibling.end, { line, column }) > 0
+    ) {
+      throw new Error(
+        `Range start (${line}, ${column}) must not precede preceding siblings' end (${precedingSibling
+          .end.line,
+          precedingSibling.end.column})`,
+      );
+    }
 
     super.startRange(line, column);
     return this;

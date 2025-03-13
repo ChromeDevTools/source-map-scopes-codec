@@ -123,5 +123,23 @@ describe("SafeScopeInfoBuilder", () => {
 
       assertThrows(() => builder.startRange(0, 0));
     });
+
+    it("throws when trying to start a range that precedes its' parent", () => {
+      builder.startRange(10, 0);
+
+      assertThrows(() => builder.startRange(5, 0));
+    });
+
+    it("throws when trying to start a range that overlaps with the preceding sibling range", () => {
+      builder.startRange(0, 0).startRange(5, 0).endRange(10, 0);
+
+      assertThrows(() => builder.startRange(7, 0));
+    });
+
+    it("allows starting a range on the preceding range' end", () => {
+      builder.startRange(0, 0).endRange(10, 5);
+
+      builder.startRange(10, 5);
+    });
   });
 });
