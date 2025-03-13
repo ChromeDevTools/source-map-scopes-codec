@@ -4,7 +4,7 @@
 
 import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import { SafeScopeInfoBuilder } from "./safe_builder.ts";
-import { assert, assertThrows } from "jsr:@std/assert";
+import { assertThrows } from "jsr:@std/assert";
 
 describe("SafeScopeInfoBuilder", () => {
   let builder: SafeScopeInfoBuilder;

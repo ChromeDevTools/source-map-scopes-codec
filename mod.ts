@@ -14,3 +14,6 @@ export type {
 
 export { encode } from "./src/encode/encode.ts";
 export { decode } from "./src/decode/decode.ts";
+
+export { ScopeInfoBuilder } from "./src/builder/builder.ts";
+export { SafeScopeInfoBuilder } from "./src/builder/safe_builder.ts";
