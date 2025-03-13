@@ -84,7 +84,7 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     const scope = this.scopeStack.at(-1) as OriginalScope;
     if (comparePositions(scope.start, { line, column }) > 0) {
       throw new Error(
-        `Scope end (${line}, ${column}) must not precede or be on scope start (${scope.start.line}, ${scope.start.column})`,
+        `Scope end (${line}, ${column}) must not precede scope start (${scope.start.line}, ${scope.start.column})`,
       );
     }
 
@@ -115,6 +115,24 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     }
 
     super.startRange(line, column);
+    return this;
+  }
+
+  override endRange(line: number, column: number): this {
+    this.#verifyEmptyScopeStack("endRange");
+
+    if (this.rangeStack.length === 0) {
+      throw new Error("No range to end");
+    }
+
+    const range = this.rangeStack.at(-1)!;
+    if (comparePositions(range.start, { line, column }) > 0) {
+      throw new Error(
+        `Range end (${line}, ${column}) must not precede range start (${range.start.line}, ${range.start.column})`,
+      );
+    }
+
+    super.endRange(line, column);
     return this;
   }
 

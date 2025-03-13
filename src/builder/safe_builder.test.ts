@@ -142,4 +142,22 @@ describe("SafeScopeInfoBuilder", () => {
       builder.startRange(10, 5);
     });
   });
+
+  describe("endRange", () => {
+    it("throws when the range stack is empty", () => {
+      assertThrows(() => builder.endRange(5, 0));
+    });
+
+    it("allows range with zero length", () => {
+      builder.startRange(10, 0);
+
+      builder.endRange(10, 0);
+    });
+
+    it("throws when range end precedes range start", () => {
+      builder.startRange(10, 0);
+
+      assertThrows(() => builder.endRange(5, 0));
+    });
+  });
 });
