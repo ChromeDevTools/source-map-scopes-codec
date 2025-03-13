@@ -37,6 +37,7 @@ export type Item =
   | typeof EmptyItem
   | OriginalScopeStartItem
   | OriginalScopeEndItem
+  | OriginalScopeVariablesItem
   | GeneratedRangeStartItem
   | GeneratedRangeEndItem;
 
@@ -53,6 +54,11 @@ interface OriginalScopeEndItem {
   tag: Tag.ORIGINAL_SCOPE_END;
   line: number;
   column: number;
+}
+
+interface OriginalScopeVariablesItem {
+  tag: Tag.ORIGINAL_SCOPE_VARIABLES;
+  variableIdxs: number[];
 }
 
 interface GeneratedRangeStartItem {

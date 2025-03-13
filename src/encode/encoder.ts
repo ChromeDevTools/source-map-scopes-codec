@@ -15,6 +15,7 @@ const DEFAULT_SCOPE_STATE = {
   column: 0,
   name: 0,
   kind: 0,
+  variable: 0,
 };
 
 const DEFAULT_RANGE_STATE = {
@@ -64,6 +65,7 @@ export class Encoder {
     }
 
     this.#encodeOriginalScopeStart(scope);
+    this.#encodeOriginalScopeVariables(scope);
     scope.children.forEach((child) => this.#encodeOriginalScope(child));
     this.#encodeOriginalScopeEnd(scope);
   }
@@ -102,6 +104,20 @@ export class Encoder {
     this.#finishItem();
 
     this.#scopeToCount.set(scope, this.#scopeCounter++);
+  }
+
+  #encodeOriginalScopeVariables(scope: OriginalScope) {
+    if (scope.variables.length === 0) return;
+
+    this.#encodeTag(EncodedTag.ORIGINAL_SCOPE_VARIABLES);
+
+    for (const variable of scope.variables) {
+      const idx = this.#resolveNamesIdx(variable);
+      this.#encodeSigned(idx - this.#scopeState.variable);
+      this.#scopeState.variable = idx;
+    }
+
+    this.#finishItem();
   }
 
   #encodeOriginalScopeEnd(scope: OriginalScope) {

@@ -132,4 +132,12 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  it("handles OriginalScope variables", () => {
+    builder.startScope(0, 0, { variables: ["foo", "bar"] }).startScope(10, 0, {
+      variables: ["local1", "local2"],
+    }).endScope(20, 0).endScope(30, 0);
+
+    assertCodec(builder.build());
+  });
 });

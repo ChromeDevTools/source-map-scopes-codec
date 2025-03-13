@@ -28,6 +28,7 @@ const DEFAULT_SCOPE_STATE = {
   line: 0,
   name: 0,
   kind: 0,
+  variable: 0,
 };
 
 const DEFAULT_RANGE_STATE = {
@@ -93,6 +94,22 @@ class Decoder {
 
           this.#scopeStack.push(scope);
           this.#countToScope.set(this.#scopeCounter++, scope);
+          break;
+        }
+        case Tag.ORIGINAL_SCOPE_VARIABLES: {
+          const scope = this.#scopeStack.at(-1);
+          if (!scope) {
+            throw new Error(
+              "Encountered ORIGINAL_SCOPE_VARIABLES without surrounding ORIGINAL_SCOPE_START",
+            );
+          }
+
+          for (const variableIdx of item.variableIdxs) {
+            this.#scopeState.variable += variableIdx;
+            scope.variables.push(this.#names[this.#scopeState.variable]);
+
+            // TODO: Potentially throw if we decode an illegal index.
+          }
           break;
         }
         case Tag.ORIGINAL_SCOPE_END: {
@@ -224,6 +241,16 @@ class Decoder {
           }
 
           yield item;
+          break;
+        }
+        case Tag.ORIGINAL_SCOPE_VARIABLES: {
+          const variableIdxs: number[] = [];
+
+          while (iter.hasNext() && iter.peek() !== ",") {
+            variableIdxs.push(iter.nextSignedVLQ());
+          }
+
+          yield { tag, variableIdxs };
           break;
         }
         case Tag.ORIGINAL_SCOPE_END: {
