@@ -181,6 +181,10 @@ describe("ScopeInfoBuilder", () => {
       assertStrictEquals(info.scopes[0], info.ranges[0].originalScope);
       assertStrictEquals(info.ranges[0].originalScope, scope);
     });
+
+    it("does nothing when no range is on the stack", () => {
+      builder.setRangeDefinitionScope(0);
+    });
   });
 
   describe("setRangeStackFrame", () => {

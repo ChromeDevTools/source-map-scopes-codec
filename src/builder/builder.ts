@@ -205,14 +205,6 @@ export class ScopeInfoBuilder {
     return this.#rangeStack;
   }
 
-  protected get scopes(): ReadonlyArray<OriginalScope | null> {
-    return this.#scopes;
-  }
-
-  protected get ranges(): ReadonlyArray<GeneratedRange> {
-    return this.#ranges;
-  }
-
   protected isValidScopeNumber(n: number): boolean {
     return this.#countToScope.has(n);
   }
