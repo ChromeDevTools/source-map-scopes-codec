@@ -4,9 +4,7 @@
 
 import {
   EmptyItem,
-  EncodedTag,
   type Item,
-  OriginalScopeStartItem,
   Tag,
 } from "../codec.ts";
 import type {

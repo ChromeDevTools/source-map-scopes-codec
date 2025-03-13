@@ -89,7 +89,7 @@ export class Encoder {
       .#encodeUnsigned(column).#finishItem();
   }
 
-  #encodeGeneratedRange(range: GeneratedRange): void {
+  #encodeGeneratedRange(_range: GeneratedRange): void {
   }
 
   #verifyPositionWithScopeState(line: number, column: number) {
