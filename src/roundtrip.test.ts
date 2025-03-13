@@ -120,4 +120,16 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  it("handles the isStackFrame flag on GeneratedRanges", () => {
+    builder.startRange(0, 0, { isStackFrame: true }).endRange(0, 10);
+
+    assertCodec(builder.build());
+  });
+
+  it("handles the isHidden flag on GeneratedRanges", () => {
+    builder.startRange(0, 0, { isHidden: true }).endRange(0, 10);
+
+    assertCodec(builder.build());
+  });
 });

@@ -151,6 +151,9 @@ export class Encoder {
       this.#rangeState.defScopeIdx = definitionIdx;
     }
 
+    if (range.isStackFrame) flags |= GeneratedRangeFlags.IS_STACK_FRAME;
+    if (range.isHidden) flags |= GeneratedRangeFlags.IS_HIDDEN;
+
     this.#encodeTag(EncodedTag.GENERATED_RANGE_START).#encodeUnsigned(flags);
     if (encodedLine > 0) this.#encodeUnsigned(encodedLine);
     this.#encodeUnsigned(encodedColumn);

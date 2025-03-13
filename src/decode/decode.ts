@@ -134,8 +134,10 @@ class Decoder {
               line: this.#rangeState.line,
               column: this.#rangeState.column,
             },
-            isStackFrame: false,
-            isHidden: false,
+            isStackFrame: Boolean(
+              item.flags & GeneratedRangeFlags.IS_STACK_FRAME,
+            ),
+            isHidden: Boolean(item.flags & GeneratedRangeFlags.IS_HIDDEN),
             values: [],
             children: [],
           };
