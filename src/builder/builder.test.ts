@@ -97,6 +97,12 @@ describe("ScopeInfoBuilder", () => {
     });
   });
 
+  describe("endScope", () => {
+    it("does nothing when no scope is open", () => {
+      builder.endScope(10, 0);
+    });
+  });
+
   it("builds a simple generated range", () => {
     const info = builder.startRange(0, 0).endRange(0, 20).build();
 
