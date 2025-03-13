@@ -87,15 +87,15 @@ describe("SafeScopeInfoBuilder", () => {
     });
   });
 
-  describe("setStackFrame", () => {
+  describe("setScopeStackFrame", () => {
     it("throws when no scope is on open", () => {
-      assertThrows(() => builder.setStackFrame(true));
+      assertThrows(() => builder.setScopeStackFrame(true));
     });
 
     it("throws while building a range", () => {
       builder.startRange(0, 0);
 
-      assertThrows(() => builder.setStackFrame(true));
+      assertThrows(() => builder.setScopeStackFrame(true));
     });
   });
 

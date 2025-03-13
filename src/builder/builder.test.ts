@@ -92,9 +92,12 @@ describe("ScopeInfoBuilder", () => {
     });
   });
 
-  describe("setStackFrame", () => {
+  describe("setScopeStackFrame", () => {
     it("sets the isStackFrame flag", () => {
-      const info = builder.startScope(0, 0).setStackFrame(true).endScope(10, 0)
+      const info = builder.startScope(0, 0).setScopeStackFrame(true).endScope(
+        10,
+        0,
+      )
         .build();
 
       assertStrictEquals(info.scopes[0]?.isStackFrame, true);

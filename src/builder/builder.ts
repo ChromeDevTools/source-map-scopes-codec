@@ -69,7 +69,7 @@ export class ScopeInfoBuilder {
     return this;
   }
 
-  setStackFrame(isStackFrame: boolean): this {
+  setScopeStackFrame(isStackFrame: boolean): this {
     const scope = this.#scopeStack.at(-1);
     if (scope) scope.isStackFrame = isStackFrame;
     return this;
