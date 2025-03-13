@@ -54,3 +54,5 @@ const scopeInformation = new ScopeInfoBuilder()
     .endRange(1, 1)
     .build();
 ```
+
+There is also a `SafeScopeInfoBuilder` that checks that scopes and ranges are well nested and some other integrity constraints (e.g. definition scopes are known).
