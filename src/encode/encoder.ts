@@ -2,7 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import { EncodedTag, OriginalScopeFlags } from "../codec.ts";
+import {
+  EncodedTag,
+  GeneratedRangeFlags,
+  OriginalScopeFlags,
+} from "../codec.ts";
 import type { GeneratedRange, OriginalScope, ScopeInfo } from "../scopes.d.ts";
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
 
@@ -109,7 +113,50 @@ export class Encoder {
       .#encodeUnsigned(column).#finishItem();
   }
 
-  #encodeGeneratedRange(_range: GeneratedRange): void {
+  #encodeGeneratedRange(range: GeneratedRange): void {
+    this.#encodeGeneratedRangeStart(range);
+    range.children.forEach((child) => this.#encodeGeneratedRange(child));
+    this.#encodeGeneratedRangeEnd(range);
+  }
+
+  #encodeGeneratedRangeStart(range: GeneratedRange) {
+    const { line, column } = range.start;
+    this.#verifyPositionWithRangeState(line, column);
+
+    let flags = 0;
+    const encodedLine = line - this.#rangeState.line;
+    let encodedColumn = column - this.#rangeState.column;
+    if (encodedLine > 0) {
+      flags |= GeneratedRangeFlags.HAS_LINE;
+      encodedColumn = column;
+    }
+
+    this.#rangeState.line = line;
+    this.#rangeState.column = column;
+
+    this.#encodeTag(EncodedTag.GENERATED_RANGE_START).#encodeUnsigned(flags);
+    if (encodedLine > 0) this.#encodeUnsigned(encodedLine);
+    this.#encodeUnsigned(encodedColumn).#finishItem();
+  }
+
+  #encodeGeneratedRangeEnd(range: GeneratedRange) {
+    const { line, column } = range.end;
+    this.#verifyPositionWithRangeState(line, column);
+
+    let flags = 0;
+    const encodedLine = line - this.#rangeState.line;
+    let encodedColumn = column - this.#rangeState.column;
+    if (encodedLine > 0) {
+      flags |= GeneratedRangeFlags.HAS_LINE;
+      encodedColumn = column;
+    }
+
+    this.#rangeState.line = line;
+    this.#rangeState.column = column;
+
+    this.#encodeTag(EncodedTag.GENERATED_RANGE_END);
+    if (encodedLine > 0) this.#encodeUnsigned(encodedLine);
+    this.#encodeUnsigned(encodedColumn).#finishItem();
   }
 
   #resolveNamesIdx(name: string): number {
@@ -127,6 +174,17 @@ export class Encoder {
     ) {
       throw new Error(
         `Attempting to encode scope item that precedes the last encoded scope item (${line}, ${column})`,
+      );
+    }
+  }
+
+  #verifyPositionWithRangeState(line: number, column: number) {
+    if (
+      this.#rangeState.line > line ||
+      (this.#rangeState.line === line && this.#rangeState.column > column)
+    ) {
+      throw new Error(
+        `Attempting to encode range item that precedes the last encoded range item (${line}, ${column})`,
       );
     }
   }

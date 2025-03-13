@@ -63,4 +63,17 @@ describe("encode", () => {
 
     assertThrows(() => encode(info));
   });
+
+  it("throws when a child range' start is not nested propertly within its parent", () => {
+    const info = builder.startRange(10, 0).startRange(0, 0).endRange(20, 0)
+      .endRange(30, 0).build();
+
+    assertThrows(() => encode(info));
+  });
+
+  it("throws when a rangees' end precedes the ranges' start", () => {
+    const info = builder.startRange(10, 0).endRange(0, 0).build();
+
+    assertThrows(() => encode(info));
+  });
 });
