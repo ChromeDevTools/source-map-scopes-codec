@@ -71,8 +71,18 @@ describe("encode", () => {
     assertThrows(() => encode(info));
   });
 
-  it("throws when a rangees' end precedes the ranges' start", () => {
+  it("throws when a ranges' end precedes the ranges' start", () => {
     const info = builder.startRange(10, 0).endRange(0, 0).build();
+
+    assertThrows(() => encode(info));
+  });
+
+  it("throws when a ranges' definition scope has not known to the encoder", () => {
+    const scope = builder.startScope(0, 0).endScope(10, 0).lastScope()!;
+    const info = builder.startRange(0, 10).endRange(0, 20).build();
+
+    // Set the range's definition as a copy of `scope`.
+    info.ranges[0].originalScope = { ...scope };
 
     assertThrows(() => encode(info));
   });

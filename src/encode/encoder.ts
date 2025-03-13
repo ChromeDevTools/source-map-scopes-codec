@@ -33,8 +33,10 @@ export class Encoder {
   readonly #scopeState = { ...DEFAULT_SCOPE_STATE };
   readonly #rangeState = { ...DEFAULT_RANGE_STATE };
   #encodedItems: string[] = [];
-
   #currentItem: string = "";
+
+  #scopeToCount = new Map<OriginalScope, number>();
+  #scopeCounter = 0;
 
   constructor(info: ScopeInfo, names: string[]) {
     this.#info = info;
@@ -98,6 +100,8 @@ export class Encoder {
     if (encodedName !== undefined) this.#encodeSigned(encodedName);
     if (encodedKind !== undefined) this.#encodeSigned(encodedKind);
     this.#finishItem();
+
+    this.#scopeToCount.set(scope, this.#scopeCounter++);
   }
 
   #encodeOriginalScopeEnd(scope: OriginalScope) {
@@ -134,9 +138,24 @@ export class Encoder {
     this.#rangeState.line = line;
     this.#rangeState.column = column;
 
+    let encodedDefinition;
+    if (range.originalScope) {
+      const definitionIdx = this.#scopeToCount.get(range.originalScope);
+      if (definitionIdx === undefined) {
+        throw new Error("Unknown OriginalScope for definition!");
+      }
+
+      flags |= GeneratedRangeFlags.HAS_DEFINITION;
+
+      encodedDefinition = definitionIdx - this.#rangeState.defScopeIdx;
+      this.#rangeState.defScopeIdx = definitionIdx;
+    }
+
     this.#encodeTag(EncodedTag.GENERATED_RANGE_START).#encodeUnsigned(flags);
     if (encodedLine > 0) this.#encodeUnsigned(encodedLine);
-    this.#encodeUnsigned(encodedColumn).#finishItem();
+    this.#encodeUnsigned(encodedColumn);
+    if (encodedDefinition !== undefined) this.#encodeSigned(encodedDefinition);
+    this.#finishItem();
   }
 
   #encodeGeneratedRangeEnd(range: GeneratedRange) {

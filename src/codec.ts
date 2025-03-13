@@ -26,6 +26,7 @@ export const enum OriginalScopeFlags {
 
 export const enum GeneratedRangeFlags {
   HAS_LINE = 0x1,
+  HAS_DEFINITION = 0x2,
 }
 
 export const EmptyItem = Symbol("empty item");
