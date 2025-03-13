@@ -162,6 +162,14 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     return this;
   }
 
+  override setRangeStackFrame(isStackFrame: boolean): this {
+    this.#verifyEmptyScopeStack("setRangeStackFrame");
+    this.#verifyRangePresent("setRangeStackFrame");
+
+    super.setRangeStackFrame(isStackFrame);
+    return this;
+  }
+
   override endRange(line: number, column: number): this {
     this.#verifyEmptyScopeStack("endRange");
 

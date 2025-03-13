@@ -189,6 +189,18 @@ describe("SafeScopeInfoBuilder", () => {
     });
   });
 
+  describe("setRangeStackFrame", () => {
+    it("throws when no range is on open", () => {
+      assertThrows(() => builder.setRangeStackFrame(true));
+    });
+
+    it("throws while building a scope", () => {
+      builder.startScope(0, 0);
+
+      assertThrows(() => builder.setRangeStackFrame(true));
+    });
+  });
+
   describe("endRange", () => {
     it("throws when the range stack is empty", () => {
       assertThrows(() => builder.endRange(5, 0));

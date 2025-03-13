@@ -113,12 +113,12 @@ export class ScopeInfoBuilder {
   startRange(
     line: number,
     column: number,
-    options?: { scope?: number | OriginalScope },
+    options?: { scope?: number | OriginalScope; isStackFrame?: boolean },
   ): this {
     const range: GeneratedRange = {
       start: { line, column },
       end: { line, column },
-      isStackFrame: false,
+      isStackFrame: Boolean(options?.isStackFrame),
       isHidden: false,
       values: [],
       children: [],
@@ -148,6 +148,13 @@ export class ScopeInfoBuilder {
     } else {
       range.originalScope = scope;
     }
+
+    return this;
+  }
+
+  setRangeStackFrame(isStackFrame: boolean): this {
+    const range = this.#rangeStack.at(-1);
+    if (range) range.isStackFrame = isStackFrame;
 
     return this;
   }

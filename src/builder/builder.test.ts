@@ -142,6 +142,15 @@ describe("ScopeInfoBuilder", () => {
       assertStrictEquals(info.scopes[0], info.ranges[0].originalScope);
       assertStrictEquals(info.ranges[0].originalScope, scope);
     });
+
+    it("can set isStackFrame via option", () => {
+      const info = builder.startRange(0, 0, { isStackFrame: true }).endRange(
+        10,
+        0,
+      ).build();
+
+      assertStrictEquals(info.ranges[0]?.isStackFrame, true);
+    });
   });
 
   describe("setRangeDefinitionScope", () => {
@@ -159,6 +168,18 @@ describe("ScopeInfoBuilder", () => {
 
       assertStrictEquals(info.scopes[0], info.ranges[0].originalScope);
       assertStrictEquals(info.ranges[0].originalScope, scope);
+    });
+  });
+
+  describe("setRangeStackFrame", () => {
+    it("sets the isStackFrame flag", () => {
+      const info = builder.startRange(0, 0).setRangeStackFrame(true).endRange(
+        10,
+        0,
+      )
+        .build();
+
+      assertStrictEquals(info.ranges[0]?.isStackFrame, true);
     });
   });
 
