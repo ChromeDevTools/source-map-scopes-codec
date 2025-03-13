@@ -56,4 +56,11 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  it("handles scope names", () => {
+    builder.startScope(0, 0, { name: "foo" }).startScope(10, 0, { name: "bar" })
+      .endScope(20, 0).endScope(30, 0);
+
+    assertCodec(builder.build());
+  });
 });

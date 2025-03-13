@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import { EncodedTag } from "../codec.ts";
+import { EncodedTag, OriginalScopeFlags } from "../codec.ts";
 import type { GeneratedRange, OriginalScope, ScopeInfo } from "../scopes.d.ts";
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
 
@@ -66,14 +66,23 @@ export class Encoder {
     const { line, column } = scope.start;
     this.#verifyPositionWithScopeState(line, column);
 
+    let flags = 0;
     const encodedLine = line - this.#scopeState.line;
-    const flags = 0;
-
     this.#scopeState.line = line;
     this.#scopeState.column = column;
 
+    let encodedName: number | undefined;
+    if (scope.name !== undefined) {
+      flags |= OriginalScopeFlags.HAS_NAME;
+      const nameIdx = this.#resolveNamesIdx(scope.name);
+      encodedName = nameIdx - this.#scopeState.name;
+      this.#scopeState.name = nameIdx;
+    }
+
     this.#encodeTag(EncodedTag.ORIGINAL_SCOPE_START).#encodeUnsigned(flags)
-      .#encodeUnsigned(encodedLine).#encodeUnsigned(column).#finishItem();
+      .#encodeUnsigned(encodedLine).#encodeUnsigned(column);
+    if (encodedName !== undefined) this.#encodeSigned(encodedName);
+    this.#finishItem();
   }
 
   #encodeOriginalScopeEnd(scope: OriginalScope) {
@@ -90,6 +99,14 @@ export class Encoder {
   }
 
   #encodeGeneratedRange(_range: GeneratedRange): void {
+  }
+
+  #resolveNamesIdx(name: string): number {
+    const index = this.#names.indexOf(name);
+    if (index >= 0) return index;
+
+    this.#names.push(name);
+    return this.#names.length - 1;
   }
 
   #verifyPositionWithScopeState(line: number, column: number) {

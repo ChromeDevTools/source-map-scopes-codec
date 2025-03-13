@@ -5,6 +5,8 @@
 import {
   EmptyItem,
   type Item,
+  OriginalScopeFlags,
+  type OriginalScopeStartItem,
   Tag,
 } from "../codec.ts";
 import type {
@@ -72,6 +74,11 @@ class Decoder {
             children: [],
           };
 
+          if (item.nameIdx !== undefined) {
+            this.#scopeState.name += item.nameIdx;
+            scope.name = this.#names[this.#scopeState.name];
+          }
+
           this.#scopeStack.push(scope);
           break;
         }
@@ -121,12 +128,18 @@ class Decoder {
       const tag = iter.nextUnsignedVLQ();
       switch (tag) {
         case Tag.ORIGINAL_SCOPE_START: {
-          yield {
+          const item: OriginalScopeStartItem = {
             tag,
             flags: iter.nextUnsignedVLQ(),
             line: iter.nextUnsignedVLQ(),
             column: iter.nextUnsignedVLQ(),
           };
+
+          if (item.flags & OriginalScopeFlags.HAS_NAME) {
+            item.nameIdx = iter.nextSignedVLQ();
+          }
+
+          yield item;
           break;
         }
         case Tag.ORIGINAL_SCOPE_END: {
