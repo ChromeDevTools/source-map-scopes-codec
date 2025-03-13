@@ -5,9 +5,57 @@
 import { describe, it } from "jsr:@std/testing/bdd";
 import { ScopeInfoBuilder } from "../builder/builder.ts";
 import { encode } from "../encode/encode.ts";
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import {
+  assertEquals,
+  assertExists,
+  assertStrictEquals,
+} from "jsr:@std/assert";
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
 import { decode } from "./decode.ts";
+import type { SourceMapJson } from "../scopes.d.ts";
+import { OriginalScopeFlags, Tag } from "../codec.ts";
+
+class ItemEncoder {
+  #encodedItems: string[] = [];
+  #currentItem = "";
+
+  encode(): string {
+    const result = this.#encodedItems.join(",");
+    this.#encodedItems = [];
+    this.#currentItem = "";
+    return result;
+  }
+
+  finishItem(): this {
+    this.#encodedItems.push(this.#currentItem);
+    this.#currentItem = "";
+    return this;
+  }
+
+  addUnsignedVLQs(...ns: number[]): this {
+    for (const n of ns) {
+      this.#currentItem += encodeUnsigned(n);
+    }
+    return this;
+  }
+
+  addSignedVLQs(...ns: number[]): this {
+    for (const n of ns) {
+      this.#currentItem += encodeSigned(n);
+    }
+    return this;
+  }
+}
+
+function createMap(scopes: string, names: string[]): SourceMapJson {
+  return {
+    version: 3,
+    mappings: "",
+    sources: [],
+    scopes,
+    names,
+  };
+}
 
 describe("decode", () => {
   it("handles unknown items interspersed in an known items", () => {
@@ -57,5 +105,39 @@ describe("decode", () => {
     map.scopes = parts.join(",");
 
     assertEquals(decode(map), info);
+  });
+
+  it("ignores wrong 'name' indices", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(
+      Tag.ORIGINAL_SCOPE_START,
+      OriginalScopeFlags.HAS_NAME,
+      0,
+      0,
+    ).addSignedVLQs(2)
+      .finishItem().addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 5, 0).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    const info = decode(map);
+
+    assertExists(info.scopes[0]);
+    assertStrictEquals(info.scopes[0].name, undefined);
+  });
+
+  it("ignores wrong 'kind' indices", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(
+      Tag.ORIGINAL_SCOPE_START,
+      OriginalScopeFlags.HAS_KIND,
+      0,
+      0,
+    ).addSignedVLQs(2)
+      .finishItem().addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 5, 0).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    const info = decode(map);
+
+    assertExists(info.scopes[0]);
+    assertStrictEquals(info.scopes[0].kind, undefined);
   });
 });
