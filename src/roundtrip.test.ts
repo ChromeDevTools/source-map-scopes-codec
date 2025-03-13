@@ -71,4 +71,10 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  it("handles isStackFrame flag on scopes", () => {
+    builder.startScope(0, 0, { isStackFrame: true }).endScope(10, 0);
+
+    assertCodec(builder.build());
+  });
 });

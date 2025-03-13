@@ -83,6 +83,10 @@ class Decoder {
             scope.kind = this.#names[this.#scopeState.kind];
           }
 
+          scope.isStackFrame = Boolean(
+            item.flags & OriginalScopeFlags.IS_STACK_FRAME,
+          );
+
           this.#scopeStack.push(scope);
           break;
         }

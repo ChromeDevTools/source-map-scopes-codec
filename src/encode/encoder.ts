@@ -87,6 +87,8 @@ export class Encoder {
       this.#scopeState.kind = kindIdx;
     }
 
+    if (scope.isStackFrame) flags |= OriginalScopeFlags.IS_STACK_FRAME;
+
     this.#encodeTag(EncodedTag.ORIGINAL_SCOPE_START).#encodeUnsigned(flags)
       .#encodeUnsigned(encodedLine).#encodeUnsigned(column);
     if (encodedName !== undefined) this.#encodeSigned(encodedName);
