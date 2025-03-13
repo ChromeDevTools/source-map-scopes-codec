@@ -22,7 +22,12 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
   override startScope(
     line: number,
     column: number,
-    options?: { name?: string; kind?: string; isStackFrame?: boolean },
+    options?: {
+      name?: string;
+      kind?: string;
+      isStackFrame?: boolean;
+      variables?: string[];
+    },
   ): this {
     this.#verifyEmptyRangeStack("start scope");
 
@@ -71,6 +76,14 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     this.#verifyEmptyRangeStack("setScopeStackFrame");
 
     super.setScopeStackFrame(isStackFrame);
+    return this;
+  }
+
+  override setScopeVariables(variables: string[]): this {
+    this.#verifyScopePresent("setScopeVariables");
+    this.#verifyEmptyRangeStack("setScopeVariables");
+
+    super.setScopeVariables(variables);
     return this;
   }
 

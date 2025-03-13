@@ -34,12 +34,17 @@ export class ScopeInfoBuilder {
   startScope(
     line: number,
     column: number,
-    options?: { name?: string; kind?: string; isStackFrame?: boolean },
+    options?: {
+      name?: string;
+      kind?: string;
+      isStackFrame?: boolean;
+      variables?: string[];
+    },
   ): this {
     const scope: OriginalScope = {
       start: { line, column },
       end: { line, column },
-      variables: [],
+      variables: options?.variables?.slice(0) ?? [],
       children: [],
       isStackFrame: Boolean(options?.isStackFrame),
     };
@@ -72,6 +77,13 @@ export class ScopeInfoBuilder {
   setScopeStackFrame(isStackFrame: boolean): this {
     const scope = this.#scopeStack.at(-1);
     if (scope) scope.isStackFrame = isStackFrame;
+    return this;
+  }
+
+  setScopeVariables(variables: string[]): this {
+    const scope = this.#scopeStack.at(-1);
+    if (scope) scope.variables = variables.slice(0);
+
     return this;
   }
 

@@ -41,27 +41,47 @@ describe("ScopeInfoBuilder", () => {
     assertStrictEquals(info.scopes[0], info.scopes[0].children[0].parent);
   });
 
-  it("can set the name via option", () => {
-    const info = builder.startScope(0, 0, { name: "foo" }).endScope(5, 0)
-      .build();
+  describe("startScope", () => {
+    it("can set the name via option", () => {
+      const info = builder.startScope(0, 0, { name: "foo" }).endScope(5, 0)
+        .build();
 
-    assertStrictEquals(info.scopes[0]?.name, "foo");
-  });
+      assertStrictEquals(info.scopes[0]?.name, "foo");
+    });
 
-  it("can set kind via option", () => {
-    const info = builder.startScope(0, 0, { kind: "Global" }).endScope(10, 0)
-      .build();
+    it("can set kind via option", () => {
+      const info = builder.startScope(0, 0, { kind: "Global" }).endScope(10, 0)
+        .build();
 
-    assertStrictEquals(info.scopes[0]?.kind, "Global");
-  });
+      assertStrictEquals(info.scopes[0]?.kind, "Global");
+    });
 
-  it("can set isStackFrame via option", () => {
-    const info = builder.startScope(0, 0, { isStackFrame: true }).endScope(
-      10,
-      0,
-    ).build();
+    it("can set isStackFrame via option", () => {
+      const info = builder.startScope(0, 0, { isStackFrame: true }).endScope(
+        10,
+        0,
+      ).build();
 
-    assertStrictEquals(info.scopes[0]?.isStackFrame, true);
+      assertStrictEquals(info.scopes[0]?.isStackFrame, true);
+    });
+
+    it("can set variables via option", () => {
+      const info = builder.startScope(0, 0, { variables: ["a", "b"] }).endScope(
+        10,
+        0,
+      ).build();
+
+      assertEquals(info.scopes[0]?.variables, ["a", "b"]);
+    });
+
+    it("copies the variables passed via options", () => {
+      const variables = ["a", "b"];
+      const info = builder.startScope(0, 0, { variables }).endScope(10, 0)
+        .build();
+      variables.push("c");
+
+      assertEquals(info.scopes[0]?.variables, ["a", "b"]);
+    });
   });
 
   describe("setScopeName", () => {
@@ -101,6 +121,24 @@ describe("ScopeInfoBuilder", () => {
         .build();
 
       assertStrictEquals(info.scopes[0]?.isStackFrame, true);
+    });
+  });
+
+  describe("setScopeVariables", () => {
+    it("sets variables", () => {
+      const info = builder.startScope(0, 0).setScopeVariables(["a", "b"])
+        .endScope(10, 0).build();
+
+      assertEquals(info.scopes[0]?.variables, ["a", "b"]);
+    });
+
+    it("creates a copy of the variables", () => {
+      const variables = ["a", "b"];
+      const info = builder.startScope(0, 0).setScopeVariables(variables)
+        .endScope(10, 0).build();
+      variables.push("c");
+
+      assertEquals(info.scopes[0]?.variables, ["a", "b"]);
     });
   });
 
