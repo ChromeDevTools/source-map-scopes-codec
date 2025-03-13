@@ -36,8 +36,6 @@ export type Item =
   | OriginalScopeEndItem
   | GeneratedRangeStartItem
   | GeneratedRangeEndItem;
-// | VariablesItem
-// | BindingsItem;
 
 export interface OriginalScopeStartItem {
   tag: Tag.ORIGINAL_SCOPE_START;
