@@ -97,6 +97,21 @@ export class ScopeInfoBuilder {
     return this;
   }
 
+  endRange(line: number, column: number): this {
+    const range = this.#rangeStack.pop();
+    if (!range) return this;
+
+    range.end = { line, column };
+
+    if (this.#rangeStack.length === 0) {
+      this.#ranges.push(range);
+    } else {
+      this.#rangeStack.at(-1)!.children.push(range);
+    }
+
+    return this;
+  }
+
   build(): ScopeInfo {
     const info: ScopeInfo = { scopes: this.#scopes, ranges: this.#ranges };
 

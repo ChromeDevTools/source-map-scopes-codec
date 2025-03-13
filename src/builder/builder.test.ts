@@ -94,4 +94,17 @@ describe("ScopeInfoBuilder", () => {
       assertStrictEquals(info.scopes[0]?.isStackFrame, true);
     });
   });
+
+  it("builds a simple generated range", () => {
+    const info = builder.startRange(0, 0).endRange(0, 20).build();
+
+    assertEquals(info.ranges[0]?.start, { line: 0, column: 0 });
+    assertEquals(info.ranges[0]?.end, { line: 0, column: 20 });
+  });
+
+  describe("endRange", () => {
+    it("does nothing when no range is open", () => {
+      builder.endRange(0, 20);
+    });
+  });
 });
