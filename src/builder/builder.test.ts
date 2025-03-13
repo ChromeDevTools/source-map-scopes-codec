@@ -33,6 +33,8 @@ describe("ScopeInfoBuilder", () => {
     assertStrictEquals(info.scopes[0]?.children.length, 1);
     assertEquals(info.scopes[0].children[0].start, { line: 5, column: 0 });
     assertEquals(info.scopes[0].children[0].end, { line: 10, column: 0 });
+
+    assertStrictEquals(info.scopes[0], info.scopes[0].children[0].parent);
   });
 
   it("can set the name via option", () => {
