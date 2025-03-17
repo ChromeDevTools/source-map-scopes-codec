@@ -171,6 +171,31 @@ describe("SafeScopeInfoBuilder", () => {
         })
       );
     });
+
+    it("throws when 'values' is provided without a scope", () => {
+      assertThrows(() => builder.startRange(0, 0, { values: ["a", null] }));
+    });
+
+    it("throws when 'values' length does not match OriginalScope.variables length (via scope)", () => {
+      const scope = builder.startScope(0, 0, { variables: ["foo", "bar"] })
+        .endScope(10, 0).lastScope()!;
+
+      assertThrows(() =>
+        builder.startRange(0, 0, { scope, values: ["a", null, "b"] })
+      );
+    });
+
+    it("throws when 'values' length does not match OriginalScope.variables length (via scopeKey)", () => {
+      builder.startScope(0, 0, { variables: ["foo", "bar"], key: "my key" })
+        .endScope(10, 0);
+
+      assertThrows(() =>
+        builder.startRange(0, 0, {
+          scopeKey: "my key",
+          values: ["a", null, "b"],
+        })
+      );
+    });
   });
 
   describe("setRangeDefinitionScope", () => {
@@ -244,6 +269,32 @@ describe("SafeScopeInfoBuilder", () => {
       builder.startScope(0, 0);
 
       assertThrows(() => builder.setRangeHidden(true));
+    });
+  });
+
+  describe("setRangeValues", () => {
+    it("throws when no range is on open", () => {
+      assertThrows(() => builder.setRangeValues(["a", null]));
+    });
+
+    it("throws while building a scope", () => {
+      builder.startScope(0, 0);
+
+      assertThrows(() => builder.setRangeValues(["a", null]));
+    });
+
+    it("throws when called without setting a scope prior", () => {
+      builder.startRange(0, 0);
+
+      assertThrows(() => builder.setRangeValues(["a", null]));
+    });
+
+    it("throws when 'values' length does not match OriginalScope.variables length (via scope)", () => {
+      const scope = builder.startScope(0, 0, { variables: ["foo", "bar"] })
+        .endScope(10, 0).lastScope()!;
+      builder.startRange(0, 0, { scope });
+
+      assertThrows(() => builder.setRangeValues(["a", null, "b"]));
     });
   });
 

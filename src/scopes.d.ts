@@ -92,16 +92,18 @@ export interface GeneratedRange {
  *
  *   1) A single expression (valid for a full `GeneratedRange`).
  *
- *   2) `undefined` if this variable is unavailable in the whole range. This can
+ *   2) `null` if this variable is unavailable in the whole range. This can
  *      happen e.g. when the variable was optimized out and can't be recomputed.
  *
  *   3) A list of `SubRangeBinding`s. Used when computing the value requires different
  *      expressions throughout the `GeneratedRange` or if the variable is unavailable in
  *      parts of the `GeneratedRange`.
- *      The "from" of the first `SubRangeBinding` and the "to" of the last `SubRangeBinding`
- *      are qual to the `GeneratedRange`s "start" and "end" position respectively.
+ *
+ *      Note: The decoder produces `SubRangeBindings` where the "from" of the first `SubRangeBinding`
+ *      and the "to" of the last `SubRangeBinding` are equal to the `GeneratedRange`s "start" and "end"
+ *      position respectively.
  */
-export type Binding = string | undefined | SubRangeBinding[];
+export type Binding = string | null | SubRangeBinding[];
 
 export interface SubRangeBinding {
   value?: string;

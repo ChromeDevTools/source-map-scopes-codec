@@ -202,6 +202,13 @@ describe("ScopeInfoBuilder", () => {
 
       assertStrictEquals(info.ranges[0]?.isHidden, true);
     });
+
+    it("can set simple values via option", () => {
+      const info = builder.startRange(0, 0, { values: ["a", null, "b"] })
+        .endRange(0, 10).build();
+
+      assertEquals(info.ranges[0]?.values, ["a", null, "b"]);
+    });
   });
 
   describe("setRangeDefinitionScope", () => {
@@ -253,6 +260,19 @@ describe("ScopeInfoBuilder", () => {
       ).build();
 
       assertStrictEquals(info.ranges[0]?.isHidden, true);
+    });
+  });
+
+  describe("setRangeValues", () => {
+    it("sets the values", () => {
+      const info = builder.startRange(0, 0).setRangeValues(["a", null, null])
+        .endRange(0, 10).build();
+
+      assertEquals(info.ranges[0]?.values, ["a", null, null]);
+    });
+
+    it("does nothing when no range is on the stack", () => {
+      builder.setRangeValues(["a", null, "b"]);
     });
   });
 

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import type { OriginalScope, ScopeInfo } from "../scopes.d.ts";
+import type { Binding, OriginalScope, ScopeInfo } from "../scopes.d.ts";
 import { comparePositions } from "../util.ts";
 import { ScopeInfoBuilder, type ScopeKey } from "./builder.ts";
 
@@ -114,6 +114,7 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
       scopeKey?: ScopeKey;
       isStackFrame?: boolean;
       isHidden?: boolean;
+      values?: Binding[];
     },
   ): this {
     this.#verifyEmptyScopeStack("starRange");
@@ -149,6 +150,27 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
       throw new Error(
         "The provided definition scope was not produced by this builder!",
       );
+    }
+
+    if (
+      options?.values?.length && options?.scope === undefined &&
+      options?.scopeKey === undefined
+    ) {
+      throw new Error("Provided bindings without providing an OriginalScope");
+    } else if (
+      options?.values?.length && options?.scope &&
+      options.values.length !== options.scope.variables.length
+    ) {
+      throw new Error(
+        "Provided bindings don't match up with OriginalScope.variables",
+      );
+    } else if (options?.values?.length && options?.scopeKey !== undefined) {
+      const scope = this.getScopeByValidKey(options.scopeKey);
+      if (options.values.length !== scope.variables.length) {
+        throw new Error(
+          "Provided bindings don't match up with OriginalScope.variables",
+        );
+      }
     }
 
     super.startRange(line, column, options);
@@ -196,6 +218,25 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     this.#verifyRangePresent("setRangeHidden");
 
     super.setRangeHidden(isHidden);
+    return this;
+  }
+
+  override setRangeValues(values: Binding[]): this {
+    this.#verifyEmptyScopeStack("setRangeValues");
+    this.#verifyRangePresent("setRangeValues");
+
+    const range = this.rangeStack.at(-1)!;
+    if (!range.originalScope) {
+      throw new Error(
+        "Setting an OriginalScope for a range is required before value bindings can be provided!",
+      );
+    } else if (range.originalScope.variables.length !== values.length) {
+      throw new Error(
+        "Provided bindings don't match up with OriginalScope.variables",
+      );
+    }
+
+    super.setRangeValues(values);
     return this;
   }
 

@@ -2,7 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import type { GeneratedRange, OriginalScope, ScopeInfo } from "../scopes.d.ts";
+import type {
+  Binding,
+  GeneratedRange,
+  OriginalScope,
+  ScopeInfo,
+} from "../scopes.d.ts";
 
 /**
  * Small utility class to build scope and range trees.
@@ -129,6 +134,7 @@ export class ScopeInfoBuilder {
       scopeKey?: ScopeKey;
       isStackFrame?: boolean;
       isHidden?: boolean;
+      values?: Binding[];
     },
   ): this {
     const range: GeneratedRange = {
@@ -136,7 +142,7 @@ export class ScopeInfoBuilder {
       end: { line, column },
       isStackFrame: Boolean(options?.isStackFrame),
       isHidden: Boolean(options?.isHidden),
-      values: [],
+      values: options?.values ?? [],
       children: [],
     };
 
@@ -181,6 +187,13 @@ export class ScopeInfoBuilder {
     return this;
   }
 
+  setRangeValues(values: Binding[]): this {
+    const range = this.#rangeStack.at(-1);
+    if (range) range.values = values;
+
+    return this;
+  }
+
   endRange(line: number, column: number): this {
     const range = this.#rangeStack.pop();
     if (!range) return this;
@@ -220,6 +233,10 @@ export class ScopeInfoBuilder {
 
   protected isValidScopeKey(key: ScopeKey): boolean {
     return this.#keyToScope.has(key);
+  }
+
+  protected getScopeByValidKey(key: ScopeKey): OriginalScope {
+    return this.#keyToScope.get(key)!;
   }
 }
 
