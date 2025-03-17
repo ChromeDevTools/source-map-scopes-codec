@@ -21,9 +21,8 @@ export class ScopeInfoBuilder {
   #scopeStack: OriginalScope[] = [];
   #rangeStack: GeneratedRange[] = [];
 
-  #scopeCounter = 0;
-  #scopeToCount = new Map<OriginalScope, number>();
-  #countToScope = new Map<number, OriginalScope>();
+  #knownScopes = new Set<OriginalScope>();
+  #keyToScope = new Map<ScopeKey, OriginalScope>();
   #lastScope: OriginalScope | null = null;
 
   addNullScope(): this {
@@ -39,6 +38,7 @@ export class ScopeInfoBuilder {
       kind?: string;
       isStackFrame?: boolean;
       variables?: string[];
+      key?: ScopeKey;
     },
   ): this {
     const scope: OriginalScope = {
@@ -56,8 +56,8 @@ export class ScopeInfoBuilder {
       scope.parent = this.#scopeStack.at(-1);
     }
     this.#scopeStack.push(scope);
-    this.#scopeToCount.set(scope, this.#scopeCounter);
-    this.#countToScope.set(this.#scopeCounter++, scope);
+    this.#knownScopes.add(scope);
+    if (options?.key !== undefined) this.#keyToScope.set(options.key, scope);
 
     return this;
   }
@@ -119,14 +119,14 @@ export class ScopeInfoBuilder {
 
   /**
    * @param option The definition 'scope' of this range can either be the "OriginalScope" directly
-   * (produced by this builder) or the scope's number.
-   * If a scope was started with the n-th call to `startScope` then n is the scope's number.
+   * (produced by this builder) or the scope's key set while building the scope.
    */
   startRange(
     line: number,
     column: number,
     options?: {
-      scope?: number | OriginalScope;
+      scope?: OriginalScope;
+      scopeKey?: ScopeKey;
       isStackFrame?: boolean;
       isHidden?: boolean;
     },
@@ -144,10 +144,10 @@ export class ScopeInfoBuilder {
       range.parent = this.#rangeStack.at(-1);
     }
 
-    if (typeof options?.scope === "number") {
-      range.originalScope = this.#countToScope.get(options.scope);
-    } else if (options?.scope !== undefined) {
+    if (options?.scope !== undefined) {
       range.originalScope = options.scope;
+    } else if (options?.scopeKey !== undefined) {
+      range.originalScope = this.#keyToScope.get(options.scopeKey);
     }
 
     this.#rangeStack.push(range);
@@ -155,16 +155,15 @@ export class ScopeInfoBuilder {
     return this;
   }
 
-  setRangeDefinitionScope(scope: number | OriginalScope): this {
+  setRangeDefinitionScope(scope: OriginalScope): this {
     const range = this.#rangeStack.at(-1);
-    if (!range) return this;
+    if (range) range.originalScope = scope;
+    return this;
+  }
 
-    if (typeof scope === "number") {
-      range.originalScope = this.#countToScope.get(scope);
-    } else {
-      range.originalScope = scope;
-    }
-
+  setRangeDefinitionScopeKey(scopeKey: ScopeKey): this {
+    const range = this.#rangeStack.at(-1);
+    if (range) range.originalScope = this.#keyToScope.get(scopeKey);
     return this;
   }
 
@@ -202,9 +201,7 @@ export class ScopeInfoBuilder {
 
     this.#scopes = [];
     this.#ranges = [];
-    this.#scopeCounter = 0;
-    this.#scopeToCount.clear();
-    this.#countToScope.clear();
+    this.#knownScopes.clear();
 
     return info;
   }
@@ -217,11 +214,19 @@ export class ScopeInfoBuilder {
     return this.#rangeStack;
   }
 
-  protected isValidScopeNumber(n: number): boolean {
-    return this.#countToScope.has(n);
+  protected isKnownScope(scope: OriginalScope): boolean {
+    return this.#knownScopes.has(scope);
   }
 
-  protected isKnownScope(scope: OriginalScope): boolean {
-    return this.#scopeToCount.has(scope);
+  protected isValidScopeKey(key: ScopeKey): boolean {
+    return this.#keyToScope.has(key);
   }
 }
+
+/**
+ * Users of the {@link ScopeInfoBuilder} can provide their own keys to uniquely identify a scope,
+ * and use the key later when building the corresponding range to connect them.
+ *
+ * The only requirement for ScopeKey is that it can be used as a key in a `Map`.
+ */
+export type ScopeKey = unknown;

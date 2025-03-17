@@ -168,9 +168,10 @@ describe("ScopeInfoBuilder", () => {
 
   describe("startRange", () => {
     it("sets the definition scope when it's provided as a number", () => {
-      const info = builder.startScope(0, 0).endScope(10, 0).startRange(0, 0, {
-        scope: 0,
-      }).endRange(0, 10).build();
+      const info = builder.startScope(0, 0, { key: 0 }).endScope(10, 0)
+        .startRange(0, 0, {
+          scopeKey: 0,
+        }).endRange(0, 10).build();
 
       assertStrictEquals(info.scopes[0], info.ranges[0].originalScope);
     });
@@ -204,16 +205,9 @@ describe("ScopeInfoBuilder", () => {
   });
 
   describe("setRangeDefinitionScope", () => {
-    it("sets the definition scope when it's provided as a number", () => {
-      const info = builder.startScope(0, 0).endScope(10, 0).startRange(0, 0)
-        .setRangeDefinitionScope(0).endRange(0, 10).build();
-
-      assertStrictEquals(info.scopes[0], info.ranges[0].originalScope);
-    });
-
     it("sets the definition scope when it's provided directly", () => {
-      const scope = builder.startScope(0, 0).endScope(10, 0).lastScope();
-      const info = builder.startRange(0, 0).setRangeDefinitionScope(scope!)
+      const scope = builder.startScope(0, 0).endScope(10, 0).lastScope()!;
+      const info = builder.startRange(0, 0).setRangeDefinitionScope(scope)
         .endRange(0, 10).build();
 
       assertStrictEquals(info.scopes[0], info.ranges[0].originalScope);
@@ -221,7 +215,22 @@ describe("ScopeInfoBuilder", () => {
     });
 
     it("does nothing when no range is on the stack", () => {
-      builder.setRangeDefinitionScope(0);
+      const scope = builder.startScope(0, 0).endScope(10, 0).lastScope()!;
+      builder.setRangeDefinitionScope(scope);
+    });
+  });
+
+  describe("setRangeDefinitionScopeKey", () => {
+    it("sets the definition scope when it's provided directly", () => {
+      builder.startScope(0, 0, { key: "my key" }).endScope(10, 0);
+      const info = builder.startRange(0, 0).setRangeDefinitionScopeKey("my key")
+        .endRange(0, 10).build();
+
+      assertStrictEquals(info.ranges[0].originalScope, info.scopes[0]);
+    });
+
+    it("does nothing when no range is on the stack", () => {
+      builder.setRangeDefinitionScopeKey("foo");
     });
   });
 
@@ -295,6 +304,16 @@ describe("ScopeInfoBuilder", () => {
       );
 
       assertEquals(builder.lastScope()?.start, { line: 10, column: 0 });
+    });
+  });
+
+  describe("scope key", () => {
+    it("can set the scope key via options", () => {
+      builder.startScope(0, 0, { key: "my custom key" }).endScope(10, 0);
+      builder.startRange(0, 0, { scopeKey: "my custom key" }).endRange(0, 10);
+      const info = builder.build();
+
+      assertStrictEquals(info.ranges[0].originalScope, info.scopes[0]);
     });
   });
 });

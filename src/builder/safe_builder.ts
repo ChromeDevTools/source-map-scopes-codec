@@ -4,7 +4,7 @@
 
 import type { OriginalScope, ScopeInfo } from "../scopes.d.ts";
 import { comparePositions } from "../util.ts";
-import { ScopeInfoBuilder } from "./builder.ts";
+import { ScopeInfoBuilder, type ScopeKey } from "./builder.ts";
 
 /**
  * Similar to `ScopeInfoBuilder`, but with checks that scopes/ranges are well
@@ -27,6 +27,7 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
       kind?: string;
       isStackFrame?: boolean;
       variables?: string[];
+      key?: ScopeKey;
     },
   ): this {
     this.#verifyEmptyRangeStack("start scope");
@@ -109,7 +110,8 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     line: number,
     column: number,
     options?: {
-      scope?: number | OriginalScope;
+      scope?: OriginalScope;
+      scopeKey?: ScopeKey;
       isStackFrame?: boolean;
       isHidden?: boolean;
     },
@@ -136,16 +138,14 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     }
 
     if (
-      typeof options?.scope === "number" &&
-      !this.isValidScopeNumber(options.scope)
+      options?.scopeKey !== undefined &&
+      !this.isValidScopeKey(options.scopeKey)
     ) {
       throw new Error(
-        `${options.scope} does not reference a valid OriginalScope`,
+        `${options.scopeKey} does not reference a valid OriginalScope`,
       );
     }
-    if (
-      typeof options?.scope === "object" && !this.isKnownScope(options.scope)
-    ) {
+    if (options?.scope && !this.isKnownScope(options.scope)) {
       throw new Error(
         "The provided definition scope was not produced by this builder!",
       );
@@ -155,27 +155,31 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     return this;
   }
 
-  override setRangeDefinitionScope(scope: number | OriginalScope): this {
+  override setRangeDefinitionScope(scope: OriginalScope): this {
     this.#verifyEmptyScopeStack("setRangeDefinitionScope");
     this.#verifyRangePresent("setRangeDefinitionScope");
 
-    if (
-      typeof scope === "number" &&
-      !this.isValidScopeNumber(scope)
-    ) {
-      throw new Error(
-        `${scope} does not reference a valid OriginalScope`,
-      );
-    }
-    if (
-      typeof scope === "object" && !this.isKnownScope(scope)
-    ) {
+    if (!this.isKnownScope(scope)) {
       throw new Error(
         "The provided definition scope was not produced by this builder!",
       );
     }
 
     super.setRangeDefinitionScope(scope);
+    return this;
+  }
+
+  override setRangeDefinitionScopeKey(scopeKey: ScopeKey): this {
+    this.#verifyEmptyScopeStack("setRangeDefinitionScope");
+    this.#verifyRangePresent("setRangeDefinitionScope");
+
+    if (!this.isValidScopeKey(scopeKey)) {
+      throw new Error(
+        `The provided scope key ${scopeKey} is not know nto the builder!`,
+      );
+    }
+
+    super.setRangeDefinitionScopeKey(scopeKey);
     return this;
   }
 

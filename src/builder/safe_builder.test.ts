@@ -154,8 +154,8 @@ describe("SafeScopeInfoBuilder", () => {
       builder.startRange(10, 5);
     });
 
-    it("throws when the definition scope doesnt point to a valid scope", () => {
-      assertThrows(() => builder.startRange(0, 0, { scope: 0 }));
+    it("throws when the definition scope doesn't point to a valid scope", () => {
+      assertThrows(() => builder.startRange(0, 0, { scopeKey: 0 }));
     });
 
     it("throws when the definition scope is not known to the builder", () => {
@@ -175,17 +175,39 @@ describe("SafeScopeInfoBuilder", () => {
 
   describe("setRangeDefinitionScope", () => {
     it("throws when no range is open", () => {
-      assertThrows(() => builder.setRangeDefinitionScope(0));
+      const scope = builder.startScope(0, 0).endScope(10, 0).lastScope()!;
+
+      assertThrows(() => builder.setRangeDefinitionScope(scope));
     });
 
     it("throws while building a scope", () => {
-      builder.startScope(0, 0);
+      const scope = builder.startScope(0, 0).currentScope()!;
 
-      assertThrows(() => builder.setRangeDefinitionScope(0));
+      assertThrows(() => builder.setRangeDefinitionScope(scope));
     });
 
-    it("throws when the definition scope doesnt point to a valid scope", () => {
-      assertThrows(() => builder.startRange(0, 0).setRangeDefinitionScope(0));
+    it("throws when the definition scope is not known to the builder", () => {
+      assertThrows(() =>
+        builder.startRange(0, 0).setRangeDefinitionScope({
+          start: { line: 0, column: 0 },
+          end: { line: 10, column: 10 },
+          isStackFrame: false,
+          variables: [],
+          children: [],
+        })
+      );
+    });
+  });
+
+  describe("setRangeDefinitionScopeKey", () => {
+    it("throws when no range is open", () => {
+      assertThrows(() => builder.setRangeDefinitionScopeKey("my key"));
+    });
+
+    it("throws while building a scope", () => {
+      builder.startScope(0, 0, { key: "my key" });
+
+      assertThrows(() => builder.setRangeDefinitionScopeKey("my key"));
     });
 
     it("throws when the definition scope is not known to the builder", () => {
