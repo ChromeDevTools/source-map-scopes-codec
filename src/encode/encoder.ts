@@ -135,6 +135,7 @@ export class Encoder {
 
   #encodeGeneratedRange(range: GeneratedRange): void {
     this.#encodeGeneratedRangeStart(range);
+    this.#encodeGeneratedRangeBindings(range);
     range.children.forEach((child) => this.#encodeGeneratedRange(child));
     this.#encodeGeneratedRangeEnd(range);
   }
@@ -174,6 +175,30 @@ export class Encoder {
     if (encodedLine > 0) this.#encodeUnsigned(encodedLine);
     this.#encodeUnsigned(encodedColumn);
     if (encodedDefinition !== undefined) this.#encodeSigned(encodedDefinition);
+    this.#finishItem();
+  }
+
+  #encodeGeneratedRangeBindings(range: GeneratedRange) {
+    if (range.values.length === 0) return;
+
+    if (!range.originalScope) {
+      throw new Error("Range has binding expressions but no OriginalScope");
+    } else if (range.originalScope.variables.length !== range.values.length) {
+      throw new Error(
+        "Range's binding expressions don't match OriginalScopes' variables",
+      );
+    }
+
+    this.#encodeTag(EncodedTag.GENERATED_RANGE_BINDINGS);
+    for (const val of range.values) {
+      if (val === null) {
+        this.#encodeSigned(-1);
+      } else if (typeof val === "string") {
+        this.#encodeSigned(this.#resolveNamesIdx(val));
+      } else {
+        throw new Error("Sub-range bindings not implemented yet!");
+      }
+    }
     this.#finishItem();
   }
 

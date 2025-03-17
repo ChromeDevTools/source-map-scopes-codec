@@ -181,7 +181,7 @@ class Decoder {
           const range = this.#rangeStack.pop();
           if (!range) {
             throw new Error(
-              "Encountered GENERATED_RANGE_END wtihout matching GENERATED_RANGE_START!",
+              "Encountered GENERATED_RANGE_END without matching GENERATED_RANGE_START!",
             );
           }
 
@@ -197,6 +197,25 @@ class Decoder {
           } else {
             this.#ranges.push(range);
             Object.assign(this.#rangeState, DEFAULT_RANGE_STATE);
+          }
+          break;
+        }
+        case Tag.GENERATED_RANGE_BINDINGS: {
+          const range = this.#rangeStack.at(-1);
+          if (!range) {
+            throw new Error(
+              "Encountered GENERATED_RANGE_BINDINGS without surrounding GENERATED_RANGE_START",
+            );
+          }
+
+          for (const valueIdx of item.valueIdxs) {
+            if (valueIdx === -1) {
+              range.values.push(null);
+            } else {
+              range.values.push(this.#names[valueIdx]);
+            }
+
+            // TODO: Potentially throw if we decode an illegal index.
           }
           break;
         }
@@ -292,6 +311,16 @@ class Decoder {
           } else {
             yield { tag, column: lineOrColumn };
           }
+          break;
+        }
+        case Tag.GENERATED_RANGE_BINDINGS: {
+          const valueIdxs: number[] = [];
+
+          while (iter.hasNext() && iter.peek() !== ",") {
+            valueIdxs.push(iter.nextSignedVLQ());
+          }
+
+          yield { tag, valueIdxs };
           break;
         }
       }

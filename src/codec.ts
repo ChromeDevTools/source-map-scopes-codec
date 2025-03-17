@@ -6,16 +6,18 @@ export const enum Tag {
   ORIGINAL_SCOPE_START = 0x1,
   ORIGINAL_SCOPE_END = 0x2,
   ORIGINAL_SCOPE_VARIABLES = 0x3,
-  GENERATED_RANGE_START = 0x4,
-  GENERATED_RANGE_END = 0x5,
+  GENERATED_RANGE_START = 0x5,
+  GENERATED_RANGE_END = 0x6,
+  GENERATED_RANGE_BINDINGS = 0x7,
 }
 
 export const enum EncodedTag {
   ORIGINAL_SCOPE_START = "B", // 0x1
   ORIGINAL_SCOPE_END = "C", // 0x2
   ORIGINAL_SCOPE_VARIABLES = "D", // 0x3
-  GENERATED_RANGE_START = "E", // 0x4
-  GENERATED_RANGE_END = "F", // 0x5
+  GENERATED_RANGE_START = "F", // 0x5
+  GENERATED_RANGE_END = "G", // 0x6
+  GENERATED_RANGE_BINDINGS = "H", // 0x7
 }
 
 export const enum OriginalScopeFlags {
@@ -39,7 +41,8 @@ export type Item =
   | OriginalScopeEndItem
   | OriginalScopeVariablesItem
   | GeneratedRangeStartItem
-  | GeneratedRangeEndItem;
+  | GeneratedRangeEndItem
+  | GeneratedRangeBindingsItem;
 
 export interface OriginalScopeStartItem {
   tag: Tag.ORIGINAL_SCOPE_START;
@@ -73,4 +76,9 @@ interface GeneratedRangeEndItem {
   tag: Tag.GENERATED_RANGE_END;
   line?: number;
   column: number;
+}
+
+interface GeneratedRangeBindingsItem {
+  tag: Tag.GENERATED_RANGE_BINDINGS;
+  valueIdxs: number[];
 }

@@ -144,4 +144,17 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  it("handles value bindings expressions", () => {
+    builder.startScope(0, 0, { variables: ["foo", "bar"], key: "outer" })
+      .startScope(10, 0, { variables: ["local1", "local2"], key: "inner" })
+      .endScope(20, 0).endScope(30, 0)
+      .startRange(0, 0, { scopeKey: "outer", values: ["f", "b"] }).startRange(
+        0,
+        10,
+        { scopeKey: "inner", values: [null, "g"] },
+      ).endRange(0, 20).endRange(0, 30);
+
+    assertCodec(builder.build());
+  });
 });

@@ -77,12 +77,33 @@ describe("encode", () => {
     assertThrows(() => encode(info));
   });
 
-  it("throws when a ranges' definition scope has not known to the encoder", () => {
+  it("throws when a ranges' definition scope is not known to the encoder", () => {
     const scope = builder.startScope(0, 0).endScope(10, 0).lastScope()!;
     const info = builder.startRange(0, 10).endRange(0, 20).build();
 
     // Set the range's definition as a copy of `scope`.
     info.ranges[0].originalScope = { ...scope };
+
+    assertThrows(() => encode(info));
+  });
+
+  it("throws when a range has bindings but no definition scope", () => {
+    const info = builder.startRange(0, 0, { values: ["a", null] }).endRange(
+      0,
+      10,
+    ).build();
+
+    assertThrows(() => encode(info));
+  });
+
+  it("throws when range bindings don't match with scope variables", () => {
+    const info = builder.startScope(0, 0, {
+      key: "key",
+      variables: ["foo", "bar"],
+    }).endScope(10, 0).startRange(0, 0, {
+      scopeKey: "key",
+      values: ["a", null, "b"],
+    }).endRange(0, 10).build();
 
     assertThrows(() => encode(info));
   });
