@@ -80,25 +80,30 @@ export interface GeneratedRange {
   /**
    * Expressions that compute the values of the variables of this OriginalScope. The length
    * of `values` matches the length of `originalScope.variables`.
-   *
-   * For each variable this can either be a single expression (valid for the full `GeneratedRange`),
-   * or an array of `BindingRange`s, e.g. if computing the value requires different expressions
-   * throughout the range or if the variable is only available in parts of the `GeneratedRange`.
-   *
-   * When a value uses `BindingRange[]`, then the "from" of the first `BindingRange` and the
-   * "to" of the last `BindingRange` are equal to the GeneratedRange's "start" and "end" position
-   * respectively.
-   *
-   * `undefined` denotes that the value of a variable is unavailable in the whole range.
-   * This can happen e.g. if the variable was optimized out and can't be recomputed.
    */
-  values: (string | undefined | BindingRange[])[];
+  values: Binding[];
 
   children: GeneratedRange[];
   parent?: GeneratedRange;
 }
 
-export interface BindingRange {
+/**
+ * For each variable, this can either be:
+ *
+ *   1) A single expression (valid for a full `GeneratedRange`).
+ *
+ *   2) `undefined` if this variable is unavailable in the whole range. This can
+ *      happen e.g. when the variable was optimized out and can't be recomputed.
+ *
+ *   3) A list of `SubRangeBinding`s. Used when computing the value requires different
+ *      expressions throughout the `GeneratedRange` or if the variable is unavailable in
+ *      parts of the `GeneratedRange`.
+ *      The "from" of the first `SubRangeBinding` and the "to" of the last `SubRangeBinding`
+ *      are qual to the `GeneratedRange`s "start" and "end" position respectively.
+ */
+export type Binding = string | undefined | SubRangeBinding[];
+
+export interface SubRangeBinding {
   value?: string;
   from: Position;
   to: Position;
