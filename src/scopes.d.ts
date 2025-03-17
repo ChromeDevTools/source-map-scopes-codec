@@ -85,7 +85,11 @@ export interface GeneratedRange {
    * or an array of `BindingRange`s, e.g. if computing the value requires different expressions
    * throughout the range or if the variable is only available in parts of the `GeneratedRange`.
    *
-   * `undefined` denotes that the value of a variable is unavailble in the whole range.
+   * When a value uses `BindingRange[]`, then the "from" of the first `BindingRange` and the
+   * "to" of the last `BindingRange` are equal to the GeneratedRange's "start" and "end" position
+   * respectively.
+   *
+   * `undefined` denotes that the value of a variable is unavailable in the whole range.
    * This can happen e.g. if the variable was optimized out and can't be recomputed.
    */
   values: (string | undefined | BindingRange[])[];
