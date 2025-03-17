@@ -85,18 +85,8 @@ export class TokenIterator {
     let shift = 0;
     let digit: number = VLQ_CONTINUATION_MASK;
     while (digit & VLQ_CONTINUATION_MASK) {
-      if (!this.hasNext()) {
-        throw new Error("Unexpected end of input while decodling VLQ number!");
-      }
       const charCode = this.nextCharCode();
       digit = BASE64_CODES[charCode];
-      if (charCode !== 65 /* 'A' */ && digit === 0) {
-        throw new Error(
-          `Unexpected char '${
-            String.fromCharCode(charCode)
-          }' encountered while decoding`,
-        );
-      }
       result += (digit & VLQ_BASE_MASK) << shift;
       shift += VLQ_BASE_SHIFT;
     }
@@ -104,7 +94,6 @@ export class TokenIterator {
   }
 
   currentChar(): string {
-    if (this.#position === 0) throw new Error("Move the iterator first!");
     return this.#string.charAt(this.#position - 1);
   }
 }
