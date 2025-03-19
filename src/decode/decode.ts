@@ -27,6 +27,8 @@ import { TokenIterator } from "../vlq.ts";
  * STRICT mode will throw in the following situations:
  *
  *   - Encountering ORIGINAL_SCOPE_END, or GENERATED_RANGE_END items that don't have matching *_START items.
+ *   - Encountering ORIGINAL_SCOPE_VARIABLES items outside a surrounding scope START/END.
+ *   - Encountering GENERATED_RANGE_BINDINGS items outside a surrounding range START/END.
  *   - Miss-matches between the number of variables in a scope vs the number of value expressions in the ranges.
  *   - Out-of-bound indices into the "names" array.
  */
@@ -121,9 +123,10 @@ class Decoder {
         case Tag.ORIGINAL_SCOPE_VARIABLES: {
           const scope = this.#scopeStack.at(-1);
           if (!scope) {
-            throw new Error(
+            this.#throwInStrictMode(
               "Encountered ORIGINAL_SCOPE_VARIABLES without surrounding ORIGINAL_SCOPE_START",
             );
+            continue;
           }
 
           for (const variableIdx of item.variableIdxs) {

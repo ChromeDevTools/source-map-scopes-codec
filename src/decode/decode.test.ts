@@ -217,4 +217,24 @@ describe("decode", () => {
 
     assertEquals(info.ranges, []);
   });
+
+  it("throws for free ORIGINAL_SCOPE_VARIABLES items in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
+    encoder.addSignedVLQs(0, 1).finishItem();
+    const map = createMap(encoder.encode(), ["foo", "bar"]);
+
+    assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
+  });
+
+  it("ignores free ORIGINAL_SCOPE_VARIABLES items in loose mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
+    encoder.addSignedVLQs(0, 1).finishItem();
+    const map = createMap(encoder.encode(), ["foo", "bar"]);
+
+    const info = decode(map, { mode: DecodeMode.LOOSE });
+
+    assertEquals(info.scopes, []);
+  });
 });
