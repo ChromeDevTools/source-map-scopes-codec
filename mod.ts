@@ -3,13 +3,14 @@
 // found in the LICENSE file.
 
 export type {
-  BindingRange,
+  Binding,
   GeneratedRange,
   OriginalPosition,
   OriginalScope,
   Position,
   ScopeInfo,
   SourceMapJson,
+  SubRangeBinding,
 } from "./src/scopes.d.ts";
 
 export { encode } from "./src/encode/encode.ts";
