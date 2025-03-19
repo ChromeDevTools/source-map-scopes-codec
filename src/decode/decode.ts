@@ -230,9 +230,10 @@ class Decoder {
         case Tag.GENERATED_RANGE_BINDINGS: {
           const range = this.#rangeStack.at(-1);
           if (!range) {
-            throw new Error(
+            this.#throwInStrictMode(
               "Encountered GENERATED_RANGE_BINDINGS without surrounding GENERATED_RANGE_START",
             );
+            continue;
           }
 
           for (const valueIdx of item.valueIdxs) {
