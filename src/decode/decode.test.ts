@@ -177,4 +177,44 @@ describe("decode", () => {
 
     assertEquals(info.scopes, []);
   });
+
+  it("throws in strict mode when encountering an GENERATED_RANGE_END without START", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END);
+    encoder.addSignedVLQs(42).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
+  });
+
+  it("ignores GENERATED_RANGE_END items without START in loose mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END);
+    encoder.addSignedVLQs(42).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    const info = decode(map, { mode: DecodeMode.LOOSE });
+
+    assertEquals(info.ranges, []);
+  });
+
+  it("throws for un-matched GENERATED_RANGE_START at the end in loose mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0);
+    encoder.addSignedVLQs(42).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
+  });
+
+  it("ignores un-matched GENERATED_RANGE_START at the end in loose mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0);
+    encoder.addSignedVLQs(42).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    const info = decode(map, { mode: DecodeMode.LOOSE });
+
+    assertEquals(info.ranges, []);
+  });
 });

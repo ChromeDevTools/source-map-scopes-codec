@@ -203,9 +203,10 @@ class Decoder {
 
           const range = this.#rangeStack.pop();
           if (!range) {
-            throw new Error(
+            this.#throwInStrictMode(
               "Encountered GENERATED_RANGE_END without matching GENERATED_RANGE_START!",
             );
+            continue;
           }
 
           range.end = {
@@ -248,6 +249,11 @@ class Decoder {
     if (this.#scopeStack.length > 0) {
       this.#throwInStrictMode(
         "Encountered ORIGINAL_SCOPE_START without matching END!",
+      );
+    }
+    if (this.#rangeStack.length > 0) {
+      this.#throwInStrictMode(
+        "Encountered GENERATED_RANGE_START without matching END!",
       );
     }
 
