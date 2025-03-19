@@ -8,6 +8,13 @@ import { assertFalse, assertStrictEquals } from "jsr:@std/assert";
 
 describe("TokenIterator", () => {
   describe("nextUnsignedVLQ", () => {
+    it("handles multi-digit numbers", () => {
+      const iter = new TokenIterator("hB");
+
+      assertStrictEquals(iter.nextUnsignedVLQ(), 33);
+      assertFalse(iter.hasNext());
+    });
+
     it("returns zero when no more characters are available", () => {
       const iter = new TokenIterator("");
       assertFalse(iter.hasNext());

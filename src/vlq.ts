@@ -83,13 +83,13 @@ export class TokenIterator {
   nextUnsignedVLQ(): number {
     let result = 0;
     let shift = 0;
-    let digit: number = VLQ_CONTINUATION_MASK;
-    while (digit & VLQ_CONTINUATION_MASK) {
+    let digit = 0;
+    do {
       const charCode = this.nextCharCode();
       digit = BASE64_CODES[charCode];
       result += (digit & VLQ_BASE_MASK) << shift;
       shift += VLQ_BASE_SHIFT;
-    }
+    } while (digit & VLQ_CONTINUATION_MASK);
     return result;
   }
 
