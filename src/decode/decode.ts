@@ -139,9 +139,10 @@ class Decoder {
 
           const scope = this.#scopeStack.pop();
           if (!scope) {
-            throw new Error(
+            this.#throwInStrictMode(
               "Encountered ORIGINAL_SCOPE_END without matching ORIGINAL_SCOPE_START!",
             );
+            continue;
           }
 
           scope.end = { line: this.#scopeState.line, column: item.column };
@@ -242,6 +243,12 @@ class Decoder {
           break;
         }
       }
+    }
+
+    if (this.#scopeStack.length > 0) {
+      this.#throwInStrictMode(
+        "Encountered ORIGINAL_SCOPE_START without matching END!",
+      );
     }
 
     const info = { scopes: this.#scopes, ranges: this.#ranges };
@@ -355,5 +362,9 @@ class Decoder {
     if (iter.currentChar() === ",") {
       yield EmptyItem;
     }
+  }
+
+  #throwInStrictMode(message: string) {
+    if (this.#mode === DecodeMode.STRICT) throw new Error(message);
   }
 }

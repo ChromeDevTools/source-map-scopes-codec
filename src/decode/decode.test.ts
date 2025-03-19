@@ -12,7 +12,7 @@ import {
   assertThrows,
 } from "jsr:@std/assert";
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
-import { decode } from "./decode.ts";
+import { decode, DecodeMode } from "./decode.ts";
 import type { SourceMapJson } from "../scopes.d.ts";
 import { OriginalScopeFlags, Tag } from "../codec.ts";
 
@@ -142,11 +142,39 @@ describe("decode", () => {
     assertStrictEquals(info.scopes[0].kind, undefined);
   });
 
-  it("throws when encountering an ORIGINAL_SCOPE_END without start", () => {
+  it("throws when encountering an ORIGINAL_SCOPE_END without start in strict mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 0, 0).finishItem();
     const map = createMap(encoder.encode(), []);
 
-    assertThrows(() => decode(map));
+    assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
+  });
+
+  it("ignores miss-matched ORIGINAL_SCOPE_END items", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 0, 0).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    const info = decode(map, { mode: DecodeMode.LOOSE });
+
+    assertEquals(info.scopes, []);
+  });
+
+  it("throws in strict mode when there are 'open' scopes left at the end", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
+  });
+
+  it("ignores 'open' scopes left at the end in loose mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    const info = decode(map, { mode: DecodeMode.LOOSE });
+
+    assertEquals(info.scopes, []);
   });
 });
