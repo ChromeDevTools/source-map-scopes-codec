@@ -4,10 +4,8 @@
 
 import {
   type GeneratedRangeBindingsItem,
-  type GeneratedRangeEndItem,
   GeneratedRangeFlags,
   type GeneratedRangeStartItem,
-  type OriginalScopeEndItem,
   OriginalScopeFlags,
   type OriginalScopeStartItem,
   type OriginalScopeVariablesItem,
@@ -127,10 +125,10 @@ class Decoder {
           break;
         }
         case Tag.ORIGINAL_SCOPE_END: {
-          this.#handleOriginalScopeEndItem({
-            line: iter.nextUnsignedVLQ(),
-            column: iter.nextUnsignedVLQ(),
-          });
+          this.#handleOriginalScopeEndItem(
+            iter.nextUnsignedVLQ(),
+            iter.nextUnsignedVLQ(),
+          );
           break;
         }
         case Tag.GENERATED_RANGE_START: {
@@ -159,12 +157,9 @@ class Decoder {
             : undefined;
 
           if (maybeColumn !== undefined) {
-            this.#handleGeneratedRangeEndItem({
-              line: lineOrColumn,
-              column: maybeColumn,
-            });
+            this.#handleGeneratedRangeEndItem(lineOrColumn, maybeColumn);
           } else {
-            this.#handleGeneratedRangeEndItem({ column: lineOrColumn });
+            this.#handleGeneratedRangeEndItem(0, lineOrColumn);
           }
           break;
         }
@@ -258,8 +253,8 @@ class Decoder {
     }
   }
 
-  #handleOriginalScopeEndItem(item: OriginalScopeEndItem) {
-    this.#scopeState.line += item.line;
+  #handleOriginalScopeEndItem(line: number, column: number) {
+    this.#scopeState.line += line;
 
     const scope = this.#scopeStack.pop();
     if (!scope) {
@@ -269,7 +264,7 @@ class Decoder {
       return;
     }
 
-    scope.end = { line: this.#scopeState.line, column: item.column };
+    scope.end = { line: this.#scopeState.line, column };
 
     if (this.#scopeStack.length > 0) {
       const parent = this.#scopeStack.at(-1)!;
@@ -336,12 +331,12 @@ class Decoder {
     }
   }
 
-  #handleGeneratedRangeEndItem(item: GeneratedRangeEndItem) {
-    if (item.line !== undefined) {
-      this.#rangeState.line += item.line;
-      this.#rangeState.column = item.column;
+  #handleGeneratedRangeEndItem(line: number, column: number) {
+    if (line !== 0) {
+      this.#rangeState.line += line;
+      this.#rangeState.column = column;
     } else {
-      this.#rangeState.column += item.column;
+      this.#rangeState.column += column;
     }
 
     const range = this.#rangeStack.pop();

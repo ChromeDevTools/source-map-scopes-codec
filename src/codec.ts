@@ -41,11 +41,6 @@ export interface OriginalScopeStartItem {
   kindIdx?: number;
 }
 
-export interface OriginalScopeEndItem {
-  line: number;
-  column: number;
-}
-
 export interface OriginalScopeVariablesItem {
   variableIdxs: number[];
 }
@@ -55,11 +50,6 @@ export interface GeneratedRangeStartItem {
   line?: number;
   column: number;
   definitionIdx?: number;
-}
-
-export interface GeneratedRangeEndItem {
-  line?: number;
-  column: number;
 }
 
 export interface GeneratedRangeBindingsItem {
