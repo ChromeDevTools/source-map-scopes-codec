@@ -191,7 +191,7 @@ export class Encoder {
 
     this.#encodeTag(EncodedTag.GENERATED_RANGE_BINDINGS);
     for (const val of range.values) {
-      if (val === null) {
+      if (val === null || val == undefined) {
         this.#encodeSigned(-1);
       } else if (typeof val === "string") {
         this.#encodeSigned(this.#resolveNamesIdx(val));
@@ -236,7 +236,7 @@ export class Encoder {
       (this.#scopeState.line === line && this.#scopeState.column > column)
     ) {
       throw new Error(
-        `Attempting to encode scope item that precedes the last encoded scope item (${line}, ${column})`,
+        `Attempting to encode scope item (${line}, ${column}) that precedes the last encoded scope item (${this.#scopeState.line}, ${this.#scopeState.column})`,
       );
     }
   }
