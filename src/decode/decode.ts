@@ -3,11 +3,14 @@
 // found in the LICENSE file.
 
 import {
-  EmptyItem,
+  type GeneratedRangeBindingsItem,
+  type GeneratedRangeEndItem,
   GeneratedRangeFlags,
-  type Item,
+  type GeneratedRangeStartItem,
+  type OriginalScopeEndItem,
   OriginalScopeFlags,
   type OriginalScopeStartItem,
+  type OriginalScopeVariablesItem,
   Tag,
 } from "../codec.ts";
 import type {
@@ -85,167 +88,106 @@ class Decoder {
   }
 
   decode(): ScopeInfo {
-    for (const item of this.#decodeItems()) {
-      if (item === EmptyItem) {
-        this.#scopes.push(null);
+    const iter = new TokenIterator(this.#encodedScopes);
+
+    while (iter.hasNext()) {
+      if (iter.peek() === ",") {
+        iter.nextChar(); // Consume ",".
+        this.#scopes.push(null); // Add an EmptyItem;
         continue;
       }
 
-      switch (item.tag) {
+      const tag = iter.nextUnsignedVLQ();
+      switch (tag) {
         case Tag.ORIGINAL_SCOPE_START: {
-          this.#scopeState.line += item.line;
-          const scope: OriginalScope = {
-            start: { line: this.#scopeState.line, column: item.column },
-            end: { line: this.#scopeState.line, column: item.column },
-            isStackFrame: false,
-            variables: [],
-            children: [],
+          const item: OriginalScopeStartItem = {
+            flags: iter.nextUnsignedVLQ(),
+            line: iter.nextUnsignedVLQ(),
+            column: iter.nextUnsignedVLQ(),
           };
 
-          if (item.nameIdx !== undefined) {
-            this.#scopeState.name += item.nameIdx;
-            scope.name = this.#names[this.#scopeState.name];
+          if (item.flags & OriginalScopeFlags.HAS_NAME) {
+            item.nameIdx = iter.nextSignedVLQ();
           }
-          if (item.kindIdx !== undefined) {
-            this.#scopeState.kind += item.kindIdx;
-            scope.kind = this.#names[this.#scopeState.kind];
+          if (item.flags & OriginalScopeFlags.HAS_KIND) {
+            item.kindIdx = iter.nextSignedVLQ();
           }
 
-          scope.isStackFrame = Boolean(
-            item.flags & OriginalScopeFlags.IS_STACK_FRAME,
-          );
-
-          this.#scopeStack.push(scope);
-          this.#flatOriginalScopes.push(scope);
+          this.#handleOriginalScopeStartItem(item);
           break;
         }
         case Tag.ORIGINAL_SCOPE_VARIABLES: {
-          const scope = this.#scopeStack.at(-1);
-          if (!scope) {
-            this.#throwInStrictMode(
-              "Encountered ORIGINAL_SCOPE_VARIABLES without surrounding ORIGINAL_SCOPE_START",
-            );
-            continue;
+          const variableIdxs: number[] = [];
+
+          while (iter.hasNext() && iter.peek() !== ",") {
+            variableIdxs.push(iter.nextSignedVLQ());
           }
 
-          for (const variableIdx of item.variableIdxs) {
-            this.#scopeState.variable += variableIdx;
-            scope.variables.push(this.#names[this.#scopeState.variable]);
-
-            // TODO: Potentially throw if we decode an illegal index.
-          }
+          this.#handleOriginalScopeVariablesItem({ variableIdxs });
           break;
         }
         case Tag.ORIGINAL_SCOPE_END: {
-          this.#scopeState.line += item.line;
-
-          const scope = this.#scopeStack.pop();
-          if (!scope) {
-            this.#throwInStrictMode(
-              "Encountered ORIGINAL_SCOPE_END without matching ORIGINAL_SCOPE_START!",
-            );
-            continue;
-          }
-
-          scope.end = { line: this.#scopeState.line, column: item.column };
-
-          if (this.#scopeStack.length > 0) {
-            const parent = this.#scopeStack.at(-1)!;
-            scope.parent = parent;
-            parent.children.push(scope);
-          } else {
-            this.#scopes.push(scope);
-            Object.assign(this.#scopeState, DEFAULT_SCOPE_STATE);
-          }
+          this.#handleOriginalScopeEndItem({
+            line: iter.nextUnsignedVLQ(),
+            column: iter.nextUnsignedVLQ(),
+          });
           break;
         }
         case Tag.GENERATED_RANGE_START: {
-          if (item.line !== undefined) {
-            this.#rangeState.line += item.line;
-            this.#rangeState.column = item.column;
-          } else {
-            this.#rangeState.column += item.column;
-          }
+          const flags = iter.nextUnsignedVLQ();
+          const line = flags & GeneratedRangeFlags.HAS_LINE
+            ? iter.nextUnsignedVLQ()
+            : undefined;
+          const column = iter.nextUnsignedVLQ();
 
-          const range: GeneratedRange = {
-            start: {
-              line: this.#rangeState.line,
-              column: this.#rangeState.column,
-            },
-            end: {
-              line: this.#rangeState.line,
-              column: this.#rangeState.column,
-            },
-            isStackFrame: Boolean(
-              item.flags & GeneratedRangeFlags.IS_STACK_FRAME,
-            ),
-            isHidden: Boolean(item.flags & GeneratedRangeFlags.IS_HIDDEN),
-            values: [],
-            children: [],
-          };
+          const definitionIdx = flags & GeneratedRangeFlags.HAS_DEFINITION
+            ? iter.nextSignedVLQ()
+            : undefined;
 
-          if (item.definitionIdx !== undefined) {
-            this.#rangeState.defScopeIdx += item.definitionIdx;
-            range.originalScope =
-              this.#flatOriginalScopes[this.#rangeState.defScopeIdx];
-            // TODO: Maybe throw if the idx is invalid?
-          }
-
-          this.#rangeStack.push(range);
+          this.#handleGeneratedRangeStartItem({
+            flags,
+            line,
+            column,
+            definitionIdx,
+          });
           break;
         }
         case Tag.GENERATED_RANGE_END: {
-          if (item.line !== undefined) {
-            this.#rangeState.line += item.line;
-            this.#rangeState.column = item.column;
+          const lineOrColumn = iter.nextUnsignedVLQ();
+          const maybeColumn = iter.hasNext() && iter.peek() !== ","
+            ? iter.nextUnsignedVLQ()
+            : undefined;
+
+          if (maybeColumn !== undefined) {
+            this.#handleGeneratedRangeEndItem({
+              line: lineOrColumn,
+              column: maybeColumn,
+            });
           } else {
-            this.#rangeState.column += item.column;
-          }
-
-          const range = this.#rangeStack.pop();
-          if (!range) {
-            this.#throwInStrictMode(
-              "Encountered GENERATED_RANGE_END without matching GENERATED_RANGE_START!",
-            );
-            continue;
-          }
-
-          range.end = {
-            line: this.#rangeState.line,
-            column: this.#rangeState.column,
-          };
-
-          if (this.#rangeStack.length > 0) {
-            const parent = this.#rangeStack.at(-1)!;
-            range.parent = parent;
-            parent.children.push(range);
-          } else {
-            this.#ranges.push(range);
-            Object.assign(this.#rangeState, DEFAULT_RANGE_STATE);
+            this.#handleGeneratedRangeEndItem({ column: lineOrColumn });
           }
           break;
         }
         case Tag.GENERATED_RANGE_BINDINGS: {
-          const range = this.#rangeStack.at(-1);
-          if (!range) {
-            this.#throwInStrictMode(
-              "Encountered GENERATED_RANGE_BINDINGS without surrounding GENERATED_RANGE_START",
-            );
-            continue;
+          const valueIdxs: number[] = [];
+
+          while (iter.hasNext() && iter.peek() !== ",") {
+            valueIdxs.push(iter.nextSignedVLQ());
           }
 
-          for (const valueIdx of item.valueIdxs) {
-            if (valueIdx === -1) {
-              range.values.push(null);
-            } else {
-              range.values.push(this.#names[valueIdx]);
-            }
-
-            // TODO: Potentially throw if we decode an illegal index.
-          }
+          this.#handleGeneratedRangeBindingsItem({ valueIdxs });
           break;
         }
       }
+
+      // Consume any trailing VLQ and the the ","
+      while (iter.hasNext() && iter.peek() !== ",") iter.nextUnsignedVLQ();
+      if (iter.hasNext()) iter.nextChar();
+    }
+
+    if (iter.currentChar() === ",") {
+      // Handle trailing EmptyItem.
+      this.#scopes.push(null);
     }
 
     if (this.#scopeStack.length > 0) {
@@ -268,110 +210,160 @@ class Decoder {
     return info;
   }
 
-  *#decodeItems(): Generator<Item> {
-    const iter = new TokenIterator(this.#encodedScopes);
+  #throwInStrictMode(message: string) {
+    if (this.#mode === DecodeMode.STRICT) throw new Error(message);
+  }
 
-    while (iter.hasNext()) {
-      if (iter.peek() === ",") {
-        iter.nextChar(); // Consume ",".
-        yield EmptyItem;
-        continue;
-      }
+  #handleOriginalScopeStartItem(item: OriginalScopeStartItem) {
+    this.#scopeState.line += item.line;
+    const scope: OriginalScope = {
+      start: { line: this.#scopeState.line, column: item.column },
+      end: { line: this.#scopeState.line, column: item.column },
+      isStackFrame: false,
+      variables: [],
+      children: [],
+    };
 
-      const tag = iter.nextUnsignedVLQ();
-      switch (tag) {
-        case Tag.ORIGINAL_SCOPE_START: {
-          const item: OriginalScopeStartItem = {
-            tag,
-            flags: iter.nextUnsignedVLQ(),
-            line: iter.nextUnsignedVLQ(),
-            column: iter.nextUnsignedVLQ(),
-          };
-
-          if (item.flags & OriginalScopeFlags.HAS_NAME) {
-            item.nameIdx = iter.nextSignedVLQ();
-          }
-          if (item.flags & OriginalScopeFlags.HAS_KIND) {
-            item.kindIdx = iter.nextSignedVLQ();
-          }
-
-          yield item;
-          break;
-        }
-        case Tag.ORIGINAL_SCOPE_VARIABLES: {
-          const variableIdxs: number[] = [];
-
-          while (iter.hasNext() && iter.peek() !== ",") {
-            variableIdxs.push(iter.nextSignedVLQ());
-          }
-
-          yield { tag, variableIdxs };
-          break;
-        }
-        case Tag.ORIGINAL_SCOPE_END: {
-          yield {
-            tag,
-            line: iter.nextUnsignedVLQ(),
-            column: iter.nextUnsignedVLQ(),
-          };
-          break;
-        }
-        case Tag.GENERATED_RANGE_START: {
-          const flags = iter.nextUnsignedVLQ();
-          const line = flags & GeneratedRangeFlags.HAS_LINE
-            ? iter.nextUnsignedVLQ()
-            : undefined;
-          const column = iter.nextUnsignedVLQ();
-
-          const definitionIdx = flags & GeneratedRangeFlags.HAS_DEFINITION
-            ? iter.nextSignedVLQ()
-            : undefined;
-
-          yield {
-            tag,
-            flags,
-            line,
-            column,
-            definitionIdx,
-          };
-          break;
-        }
-        case Tag.GENERATED_RANGE_END: {
-          const lineOrColumn = iter.nextUnsignedVLQ();
-          const maybeColumn = iter.hasNext() && iter.peek() !== ","
-            ? iter.nextUnsignedVLQ()
-            : undefined;
-
-          if (maybeColumn !== undefined) {
-            yield { tag, line: lineOrColumn, column: maybeColumn };
-          } else {
-            yield { tag, column: lineOrColumn };
-          }
-          break;
-        }
-        case Tag.GENERATED_RANGE_BINDINGS: {
-          const valueIdxs: number[] = [];
-
-          while (iter.hasNext() && iter.peek() !== ",") {
-            valueIdxs.push(iter.nextSignedVLQ());
-          }
-
-          yield { tag, valueIdxs };
-          break;
-        }
-      }
-
-      // Consume any trailing VLQ and the the ","
-      while (iter.hasNext() && iter.peek() !== ",") iter.nextUnsignedVLQ();
-      if (iter.hasNext()) iter.nextChar();
+    if (item.nameIdx !== undefined) {
+      this.#scopeState.name += item.nameIdx;
+      scope.name = this.#names[this.#scopeState.name];
+    }
+    if (item.kindIdx !== undefined) {
+      this.#scopeState.kind += item.kindIdx;
+      scope.kind = this.#names[this.#scopeState.kind];
     }
 
-    if (iter.currentChar() === ",") {
-      yield EmptyItem;
+    scope.isStackFrame = Boolean(
+      item.flags & OriginalScopeFlags.IS_STACK_FRAME,
+    );
+
+    this.#scopeStack.push(scope);
+    this.#flatOriginalScopes.push(scope);
+  }
+
+  #handleOriginalScopeVariablesItem(item: OriginalScopeVariablesItem) {
+    const scope = this.#scopeStack.at(-1);
+    if (!scope) {
+      this.#throwInStrictMode(
+        "Encountered ORIGINAL_SCOPE_VARIABLES without surrounding ORIGINAL_SCOPE_START",
+      );
+      return;
+    }
+
+    for (const variableIdx of item.variableIdxs) {
+      this.#scopeState.variable += variableIdx;
+      scope.variables.push(this.#names[this.#scopeState.variable]);
+
+      // TODO: Potentially throw if we decode an illegal index.
     }
   }
 
-  #throwInStrictMode(message: string) {
-    if (this.#mode === DecodeMode.STRICT) throw new Error(message);
+  #handleOriginalScopeEndItem(item: OriginalScopeEndItem) {
+    this.#scopeState.line += item.line;
+
+    const scope = this.#scopeStack.pop();
+    if (!scope) {
+      this.#throwInStrictMode(
+        "Encountered ORIGINAL_SCOPE_END without matching ORIGINAL_SCOPE_START!",
+      );
+      return;
+    }
+
+    scope.end = { line: this.#scopeState.line, column: item.column };
+
+    if (this.#scopeStack.length > 0) {
+      const parent = this.#scopeStack.at(-1)!;
+      scope.parent = parent;
+      parent.children.push(scope);
+    } else {
+      this.#scopes.push(scope);
+      Object.assign(this.#scopeState, DEFAULT_SCOPE_STATE);
+    }
+  }
+
+  #handleGeneratedRangeStartItem(item: GeneratedRangeStartItem) {
+    if (item.line !== undefined) {
+      this.#rangeState.line += item.line;
+      this.#rangeState.column = item.column;
+    } else {
+      this.#rangeState.column += item.column;
+    }
+
+    const range: GeneratedRange = {
+      start: {
+        line: this.#rangeState.line,
+        column: this.#rangeState.column,
+      },
+      end: {
+        line: this.#rangeState.line,
+        column: this.#rangeState.column,
+      },
+      isStackFrame: Boolean(
+        item.flags & GeneratedRangeFlags.IS_STACK_FRAME,
+      ),
+      isHidden: Boolean(item.flags & GeneratedRangeFlags.IS_HIDDEN),
+      values: [],
+      children: [],
+    };
+
+    if (item.definitionIdx !== undefined) {
+      this.#rangeState.defScopeIdx += item.definitionIdx;
+      range.originalScope =
+        this.#flatOriginalScopes[this.#rangeState.defScopeIdx];
+      // TODO: Maybe throw if the idx is invalid?
+    }
+
+    this.#rangeStack.push(range);
+  }
+
+  #handleGeneratedRangeBindingsItem(item: GeneratedRangeBindingsItem) {
+    const range = this.#rangeStack.at(-1);
+    if (!range) {
+      this.#throwInStrictMode(
+        "Encountered GENERATED_RANGE_BINDINGS without surrounding GENERATED_RANGE_START",
+      );
+      return;
+    }
+
+    for (const valueIdx of item.valueIdxs) {
+      if (valueIdx === -1) {
+        range.values.push(null);
+      } else {
+        range.values.push(this.#names[valueIdx]);
+      }
+
+      // TODO: Potentially throw if we decode an illegal index.
+    }
+  }
+
+  #handleGeneratedRangeEndItem(item: GeneratedRangeEndItem) {
+    if (item.line !== undefined) {
+      this.#rangeState.line += item.line;
+      this.#rangeState.column = item.column;
+    } else {
+      this.#rangeState.column += item.column;
+    }
+
+    const range = this.#rangeStack.pop();
+    if (!range) {
+      this.#throwInStrictMode(
+        "Encountered GENERATED_RANGE_END without matching GENERATED_RANGE_START!",
+      );
+      return;
+    }
+
+    range.end = {
+      line: this.#rangeState.line,
+      column: this.#rangeState.column,
+    };
+
+    if (this.#rangeStack.length > 0) {
+      const parent = this.#rangeStack.at(-1)!;
+      range.parent = parent;
+      parent.children.push(range);
+    } else {
+      this.#ranges.push(range);
+      Object.assign(this.#rangeState, DEFAULT_RANGE_STATE);
+    }
   }
 }

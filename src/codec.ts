@@ -33,19 +33,7 @@ export const enum GeneratedRangeFlags {
   IS_HIDDEN = 0x8,
 }
 
-export const EmptyItem = Symbol("empty item");
-
-export type Item =
-  | typeof EmptyItem
-  | OriginalScopeStartItem
-  | OriginalScopeEndItem
-  | OriginalScopeVariablesItem
-  | GeneratedRangeStartItem
-  | GeneratedRangeEndItem
-  | GeneratedRangeBindingsItem;
-
 export interface OriginalScopeStartItem {
-  tag: Tag.ORIGINAL_SCOPE_START;
   flags: number;
   line: number;
   column: number;
@@ -53,32 +41,27 @@ export interface OriginalScopeStartItem {
   kindIdx?: number;
 }
 
-interface OriginalScopeEndItem {
-  tag: Tag.ORIGINAL_SCOPE_END;
+export interface OriginalScopeEndItem {
   line: number;
   column: number;
 }
 
-interface OriginalScopeVariablesItem {
-  tag: Tag.ORIGINAL_SCOPE_VARIABLES;
+export interface OriginalScopeVariablesItem {
   variableIdxs: number[];
 }
 
-interface GeneratedRangeStartItem {
-  tag: Tag.GENERATED_RANGE_START;
+export interface GeneratedRangeStartItem {
   flags: number;
   line?: number;
   column: number;
   definitionIdx?: number;
 }
 
-interface GeneratedRangeEndItem {
-  tag: Tag.GENERATED_RANGE_END;
+export interface GeneratedRangeEndItem {
   line?: number;
   column: number;
 }
 
-interface GeneratedRangeBindingsItem {
-  tag: Tag.GENERATED_RANGE_BINDINGS;
+export interface GeneratedRangeBindingsItem {
   valueIdxs: number[];
 }
