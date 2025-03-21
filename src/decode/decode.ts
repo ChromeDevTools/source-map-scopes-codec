@@ -3,12 +3,10 @@
 // found in the LICENSE file.
 
 import {
-  type GeneratedRangeBindingsItem,
   GeneratedRangeFlags,
   type GeneratedRangeStartItem,
   OriginalScopeFlags,
   type OriginalScopeStartItem,
-  type OriginalScopeVariablesItem,
   Tag,
 } from "../codec.ts";
 import type {
@@ -121,7 +119,7 @@ class Decoder {
             variableIdxs.push(iter.nextSignedVLQ());
           }
 
-          this.#handleOriginalScopeVariablesItem({ variableIdxs });
+          this.#handleOriginalScopeVariablesItem(variableIdxs);
           break;
         }
         case Tag.ORIGINAL_SCOPE_END: {
@@ -170,7 +168,7 @@ class Decoder {
             valueIdxs.push(iter.nextSignedVLQ());
           }
 
-          this.#handleGeneratedRangeBindingsItem({ valueIdxs });
+          this.#handleGeneratedRangeBindingsItem(valueIdxs);
           break;
         }
       }
@@ -236,7 +234,7 @@ class Decoder {
     this.#flatOriginalScopes.push(scope);
   }
 
-  #handleOriginalScopeVariablesItem(item: OriginalScopeVariablesItem) {
+  #handleOriginalScopeVariablesItem(variableIdxs: number[]) {
     const scope = this.#scopeStack.at(-1);
     if (!scope) {
       this.#throwInStrictMode(
@@ -245,7 +243,7 @@ class Decoder {
       return;
     }
 
-    for (const variableIdx of item.variableIdxs) {
+    for (const variableIdx of variableIdxs) {
       this.#scopeState.variable += variableIdx;
       scope.variables.push(this.#names[this.#scopeState.variable]);
 
@@ -311,7 +309,7 @@ class Decoder {
     this.#rangeStack.push(range);
   }
 
-  #handleGeneratedRangeBindingsItem(item: GeneratedRangeBindingsItem) {
+  #handleGeneratedRangeBindingsItem(valueIdxs: number[]) {
     const range = this.#rangeStack.at(-1);
     if (!range) {
       this.#throwInStrictMode(
@@ -320,7 +318,7 @@ class Decoder {
       return;
     }
 
-    for (const valueIdx of item.valueIdxs) {
+    for (const valueIdx of valueIdxs) {
       if (valueIdx === -1) {
         range.values.push(null);
       } else {

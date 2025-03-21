@@ -41,17 +41,9 @@ export interface OriginalScopeStartItem {
   kindIdx?: number;
 }
 
-export interface OriginalScopeVariablesItem {
-  variableIdxs: number[];
-}
-
 export interface GeneratedRangeStartItem {
   flags: number;
   line?: number;
   column: number;
   definitionIdx?: number;
-}
-
-export interface GeneratedRangeBindingsItem {
-  valueIdxs: number[];
 }
