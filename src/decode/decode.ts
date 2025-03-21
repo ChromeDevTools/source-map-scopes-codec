@@ -76,8 +76,7 @@ class Decoder {
   readonly #scopeStack: OriginalScope[] = [];
   readonly #rangeStack: GeneratedRange[] = [];
 
-  readonly #countToScope = new Map<number, OriginalScope>();
-  #scopeCounter = 0;
+  #flatOriginalScopes: OriginalScope[] = [];
 
   constructor(scopes: string, names: string[], options?: { mode: DecodeMode }) {
     this.#encodedScopes = scopes;
@@ -117,7 +116,7 @@ class Decoder {
           );
 
           this.#scopeStack.push(scope);
-          this.#countToScope.set(this.#scopeCounter++, scope);
+          this.#flatOriginalScopes.push(scope);
           break;
         }
         case Tag.ORIGINAL_SCOPE_VARIABLES: {
@@ -187,9 +186,8 @@ class Decoder {
 
           if (item.definitionIdx !== undefined) {
             this.#rangeState.defScopeIdx += item.definitionIdx;
-            range.originalScope = this.#countToScope.get(
-              this.#rangeState.defScopeIdx,
-            );
+            range.originalScope =
+              this.#flatOriginalScopes[this.#rangeState.defScopeIdx];
             // TODO: Maybe throw if the idx is invalid?
           }
 
@@ -265,8 +263,7 @@ class Decoder {
 
     this.#scopes = [];
     this.#ranges = [];
-    this.#scopeCounter = 0;
-    this.#countToScope.clear();
+    this.#flatOriginalScopes = [];
 
     return info;
   }

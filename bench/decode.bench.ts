@@ -9,7 +9,9 @@ import { decode, DecodeMode } from "../mod.ts";
 
 const BENCHMARKS = await (async () => {
   const result = [];
-  for await (const file of expandGlob("*.js.map", { root: import.meta.dirname })) {
+  for await (
+    const file of expandGlob("*.js.map", { root: import.meta.dirname })
+  ) {
     const mapContent = Deno.readTextFileSync(file.path);
     const mapJson = JSON.parse(mapContent);
     result.push({
@@ -21,7 +23,7 @@ const BENCHMARKS = await (async () => {
   return result;
 })();
 
-for (const {name, mapJson, size} of BENCHMARKS) {
+for (const { name, mapJson, size } of BENCHMARKS) {
   Deno.bench(`${name}, lax, ${format(size)}`, () => {
     decode(mapJson, { mode: DecodeMode.LOOSE });
   });
