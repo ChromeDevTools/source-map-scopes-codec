@@ -31,6 +31,10 @@ export class Encoder {
   readonly #info: ScopeInfo;
   readonly #names: string[];
 
+  // Hash map to resolve indices of strings in the "names" array. Otherwise we'd have
+  // to use 'indexOf' for every name we want to encode.
+  readonly #namesToIndex = new Map<string, number>();
+
   readonly #scopeState = { ...DEFAULT_SCOPE_STATE };
   readonly #rangeState = { ...DEFAULT_RANGE_STATE };
   #encodedItems: string[] = [];
@@ -42,6 +46,10 @@ export class Encoder {
   constructor(info: ScopeInfo, names: string[]) {
     this.#info = info;
     this.#names = names;
+
+    for (let i = 0; i < names.length; ++i) {
+      this.#namesToIndex.set(names[i], i);
+    }
   }
 
   encode(): string {
@@ -223,11 +231,13 @@ export class Encoder {
   }
 
   #resolveNamesIdx(name: string): number {
-    const index = this.#names.indexOf(name);
-    if (index >= 0) return index;
+    const index = this.#namesToIndex.get(name);
+    if (index !== undefined) return index;
 
+    const addedIndex = this.#names.length;
     this.#names.push(name);
-    return this.#names.length - 1;
+    this.#namesToIndex.set(name, addedIndex);
+    return addedIndex;
   }
 
   #verifyPositionWithScopeState(line: number, column: number) {
