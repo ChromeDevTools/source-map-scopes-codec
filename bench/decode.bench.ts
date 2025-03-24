@@ -25,7 +25,7 @@ const BENCHMARKS = await (async () => {
 
 for (const { name, mapJson, size } of BENCHMARKS) {
   Deno.bench(`${name}, lax, ${format(size)}`, () => {
-    decode(mapJson, { mode: DecodeMode.LOOSE });
+    decode(mapJson, { mode: DecodeMode.LAX });
   });
 
   Deno.bench(`${name}, strict, ${format(size)}`, () => {

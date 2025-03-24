@@ -20,7 +20,7 @@ import { TokenIterator } from "../vlq.ts";
 /**
  * The mode decides how well-formed the encoded scopes have to be, to be accepted by the decoder.
  *
- * LOOSE is the default and is much more lenient. It's still best effort though and the decoder doesn't
+ * LAX is the default and is much more lenient. It's still best effort though and the decoder doesn't
  * implement any error recovery: e.g. superfluous "start" items can lead to whole trees being omitted.
  *
  * STRICT mode will throw in the following situations:
@@ -33,7 +33,7 @@ import { TokenIterator } from "../vlq.ts";
  */
 export const enum DecodeMode {
   STRICT = 1,
-  LOOSE = 2,
+  LAX = 2,
 }
 
 export function decode(
@@ -80,7 +80,7 @@ class Decoder {
   constructor(scopes: string, names: string[], options?: { mode: DecodeMode }) {
     this.#encodedScopes = scopes;
     this.#names = names;
-    this.#mode = options?.mode ?? DecodeMode.LOOSE;
+    this.#mode = options?.mode ?? DecodeMode.LAX;
   }
 
   decode(): ScopeInfo {

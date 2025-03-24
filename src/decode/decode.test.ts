@@ -155,7 +155,7 @@ describe("decode", () => {
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 0, 0).finishItem();
     const map = createMap(encoder.encode(), []);
 
-    const info = decode(map, { mode: DecodeMode.LOOSE });
+    const info = decode(map, { mode: DecodeMode.LAX });
 
     assertEquals(info.scopes, []);
   });
@@ -168,12 +168,12 @@ describe("decode", () => {
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
 
-  it("ignores 'open' scopes left at the end in loose mode", () => {
+  it("ignores 'open' scopes left at the end in lax mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
     const map = createMap(encoder.encode(), []);
 
-    const info = decode(map, { mode: DecodeMode.LOOSE });
+    const info = decode(map, { mode: DecodeMode.LAX });
 
     assertEquals(info.scopes, []);
   });
@@ -187,18 +187,18 @@ describe("decode", () => {
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
 
-  it("ignores GENERATED_RANGE_END items without START in loose mode", () => {
+  it("ignores GENERATED_RANGE_END items without START in lax mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END);
     encoder.addSignedVLQs(42).finishItem();
     const map = createMap(encoder.encode(), []);
 
-    const info = decode(map, { mode: DecodeMode.LOOSE });
+    const info = decode(map, { mode: DecodeMode.LAX });
 
     assertEquals(info.ranges, []);
   });
 
-  it("throws for un-matched GENERATED_RANGE_START at the end in loose mode", () => {
+  it("throws for un-matched GENERATED_RANGE_START at the end in lax mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0);
     encoder.addSignedVLQs(42).finishItem();
@@ -207,13 +207,13 @@ describe("decode", () => {
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
 
-  it("ignores un-matched GENERATED_RANGE_START at the end in loose mode", () => {
+  it("ignores un-matched GENERATED_RANGE_START at the end in lax mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0);
     encoder.addSignedVLQs(42).finishItem();
     const map = createMap(encoder.encode(), []);
 
-    const info = decode(map, { mode: DecodeMode.LOOSE });
+    const info = decode(map, { mode: DecodeMode.LAX });
 
     assertEquals(info.ranges, []);
   });
@@ -227,13 +227,13 @@ describe("decode", () => {
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
 
-  it("ignores free ORIGINAL_SCOPE_VARIABLES items in loose mode", () => {
+  it("ignores free ORIGINAL_SCOPE_VARIABLES items in lax mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
     encoder.addSignedVLQs(0, 1).finishItem();
     const map = createMap(encoder.encode(), ["foo", "bar"]);
 
-    const info = decode(map, { mode: DecodeMode.LOOSE });
+    const info = decode(map, { mode: DecodeMode.LAX });
 
     assertEquals(info.scopes, []);
   });
@@ -247,13 +247,13 @@ describe("decode", () => {
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
 
-  it("ignores free ORIGINAL_SCOPE_VARIABLES items in loose mode", () => {
+  it("ignores free ORIGINAL_SCOPE_VARIABLES items in lax mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS);
     encoder.addSignedVLQs(0, -1).finishItem();
     const map = createMap(encoder.encode(), ["foo"]);
 
-    const info = decode(map, { mode: DecodeMode.LOOSE });
+    const info = decode(map, { mode: DecodeMode.LAX });
 
     assertEquals(info.scopes, []);
   });
