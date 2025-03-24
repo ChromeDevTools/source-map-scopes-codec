@@ -108,7 +108,7 @@ describe("decode", () => {
     assertEquals(decode(map), info);
   });
 
-  it("ignores wrong 'name' indices", () => {
+  it("ignores wrong 'name' indices in lax mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(
       Tag.ORIGINAL_SCOPE_START,
@@ -122,10 +122,10 @@ describe("decode", () => {
     const info = decode(map);
 
     assertExists(info.scopes[0]);
-    assertStrictEquals(info.scopes[0].name, undefined);
+    assertStrictEquals(info.scopes[0].name, "");
   });
 
-  it("ignores wrong 'kind' indices", () => {
+  it("ignores wrong 'kind' indices in lax mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(
       Tag.ORIGINAL_SCOPE_START,
@@ -139,7 +139,7 @@ describe("decode", () => {
     const info = decode(map);
 
     assertExists(info.scopes[0]);
-    assertStrictEquals(info.scopes[0].kind, undefined);
+    assertStrictEquals(info.scopes[0].kind, "");
   });
 
   it("throws when encountering an ORIGINAL_SCOPE_END without start in strict mode", () => {
@@ -258,7 +258,7 @@ describe("decode", () => {
     assertEquals(info.scopes, []);
   });
 
-  it("throws if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (upper)", () => {
+  it("throws if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (upper) in strict mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
@@ -273,7 +273,7 @@ describe("decode", () => {
     );
   });
 
-  it("throws if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (lower)", () => {
+  it("throws if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (lower) in strict mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
@@ -288,7 +288,7 @@ describe("decode", () => {
     );
   });
 
-  it("ignores if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (upper)", () => {
+  it("ignores if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (upper) in lax mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
@@ -301,7 +301,7 @@ describe("decode", () => {
     assertEquals(info.scopes[0]?.variables, ["foo", ""]);
   });
 
-  it("ignores if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (lower)", () => {
+  it("ignores if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (lower) in lax mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
@@ -312,5 +312,41 @@ describe("decode", () => {
     const info = decode(map, { mode: DecodeMode.LAX });
 
     assertEquals(info.scopes[0]?.variables, ["foo", ""]);
+  });
+
+  it("throws if ORIGINAL_SCOPE_START.name is out-of-bounds in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(
+      Tag.ORIGINAL_SCOPE_START,
+      OriginalScopeFlags.HAS_NAME,
+      0,
+      0,
+    ).addSignedVLQs(1).finishItem(); // The last '1' is the illegal name index.
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
+    const map = createMap(encoder.encode(), ["foo"]);
+
+    assertThrows(
+      () => decode(map, { mode: DecodeMode.STRICT }),
+      Error,
+      "index into the 'names' array",
+    );
+  });
+
+  it("throws if ORIGINAL_SCOPE_START.kind is out-of-bounds in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(
+      Tag.ORIGINAL_SCOPE_START,
+      OriginalScopeFlags.HAS_KIND,
+      0,
+      0,
+    ).addSignedVLQs(1).finishItem(); // The last '1' is the illegal name index.
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
+    const map = createMap(encoder.encode(), ["foo"]);
+
+    assertThrows(
+      () => decode(map, { mode: DecodeMode.STRICT }),
+      Error,
+      "index into the 'names' array",
+    );
   });
 });

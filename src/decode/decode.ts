@@ -219,11 +219,11 @@ class Decoder {
 
     if (item.nameIdx !== undefined) {
       this.#scopeState.name += item.nameIdx;
-      scope.name = this.#names[this.#scopeState.name];
+      scope.name = this.resolveName(this.#scopeState.name);
     }
     if (item.kindIdx !== undefined) {
       this.#scopeState.kind += item.kindIdx;
-      scope.kind = this.#names[this.#scopeState.kind];
+      scope.kind = this.resolveName(this.#scopeState.kind);
     }
 
     scope.isStackFrame = Boolean(
@@ -245,16 +245,7 @@ class Decoder {
 
     for (const variableIdx of variableIdxs) {
       this.#scopeState.variable += variableIdx;
-
-      if (
-        this.#scopeState.variable < 0 ||
-        this.#scopeState.variable >= this.#names.length
-      ) {
-        this.#throwInStrictMode(
-          "ORIGINAL_SCOPE_VARIABLE is not a valid index into the 'names' array",
-        );
-      }
-      scope.variables.push(this.#names[this.#scopeState.variable] ?? "");
+      scope.variables.push(this.resolveName(this.#scopeState.variable));
     }
   }
 
@@ -365,5 +356,12 @@ class Decoder {
       this.#ranges.push(range);
       Object.assign(this.#rangeState, DEFAULT_RANGE_STATE);
     }
+  }
+
+  protected resolveName(index: number): string {
+    if (index < 0 || index >= this.#names.length) {
+      this.#throwInStrictMode("Illegal index into the 'names' array");
+    }
+    return this.#names[index] ?? "";
   }
 }
