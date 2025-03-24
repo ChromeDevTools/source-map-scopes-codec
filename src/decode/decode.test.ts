@@ -349,4 +349,32 @@ describe("decode", () => {
       "index into the 'names' array",
     );
   });
+
+  it("throws if GENERATED_RANGE_BINDINGS is out-of-bounds in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS).addSignedVLQs(2)
+      .finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
+    const map = createMap(encoder.encode(), ["foo"]);
+
+    assertThrows(
+      () => decode(map, { mode: DecodeMode.STRICT }),
+      Error,
+      "index into the 'names' array",
+    );
+  });
+
+  it("ignores if GENERATED_RANGE_BINDINGS is out-of-bounds in lax mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS).addSignedVLQs(2)
+      .finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
+    const map = createMap(encoder.encode(), ["foo"]);
+
+    const info = decode(map, { mode: DecodeMode.LAX });
+
+    assertEquals(info.ranges[0]?.values, [""]);
+  });
 });

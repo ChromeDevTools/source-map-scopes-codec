@@ -320,10 +320,8 @@ class Decoder {
       if (valueIdx === -1) {
         range.values.push(null);
       } else {
-        range.values.push(this.#names[valueIdx]);
+        range.values.push(this.#resolveName(valueIdx));
       }
-
-      // TODO: Potentially throw if we decode an illegal index.
     }
   }
 
