@@ -245,9 +245,16 @@ class Decoder {
 
     for (const variableIdx of variableIdxs) {
       this.#scopeState.variable += variableIdx;
-      scope.variables.push(this.#names[this.#scopeState.variable]);
 
-      // TODO: Potentially throw if we decode an illegal index.
+      if (
+        this.#scopeState.variable < 0 ||
+        this.#scopeState.variable >= this.#names.length
+      ) {
+        this.#throwInStrictMode(
+          "ORIGINAL_SCOPE_VARIABLE is not a valid index into the 'names' array",
+        );
+      }
+      scope.variables.push(this.#names[this.#scopeState.variable] ?? "");
     }
   }
 

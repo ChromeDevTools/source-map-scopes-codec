@@ -257,4 +257,60 @@ describe("decode", () => {
 
     assertEquals(info.scopes, []);
   });
+
+  it("throws if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (upper)", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
+    encoder.addSignedVLQs(0, 2).finishItem(); // The '2' is illegal as we only have 1 name.
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
+    const map = createMap(encoder.encode(), ["foo"]);
+
+    assertThrows(
+      () => decode(map, { mode: DecodeMode.STRICT }),
+      Error,
+      "index into the 'names'",
+    );
+  });
+
+  it("throws if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (lower)", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
+    encoder.addSignedVLQs(0, -1).finishItem(); // The '-1' is illegal as we only have 1 name.
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
+    const map = createMap(encoder.encode(), ["foo"]);
+
+    assertThrows(
+      () => decode(map, { mode: DecodeMode.STRICT }),
+      Error,
+      "index into the 'names'",
+    );
+  });
+
+  it("ignores if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (upper)", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
+    encoder.addSignedVLQs(0, 2).finishItem(); // The '2' is illegal as we only have 1 name.
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
+    const map = createMap(encoder.encode(), ["foo"]);
+
+    const info = decode(map, { mode: DecodeMode.LAX });
+
+    assertEquals(info.scopes[0]?.variables, ["foo", ""]);
+  });
+
+  it("ignores if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (lower)", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
+    encoder.addSignedVLQs(0, -1).finishItem(); // The '-1' is illegal as we only have 1 name.
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
+    const map = createMap(encoder.encode(), ["foo"]);
+
+    const info = decode(map, { mode: DecodeMode.LAX });
+
+    assertEquals(info.scopes[0]?.variables, ["foo", ""]);
+  });
 });
