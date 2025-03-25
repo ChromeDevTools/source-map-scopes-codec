@@ -299,9 +299,15 @@ class Decoder {
 
     if (item.definitionIdx !== undefined) {
       this.#rangeState.defScopeIdx += item.definitionIdx;
-      range.originalScope =
-        this.#flatOriginalScopes[this.#rangeState.defScopeIdx];
-      // TODO: Maybe throw if the idx is invalid?
+      if (
+        this.#rangeState.defScopeIdx < 0 ||
+        this.#rangeState.defScopeIdx >= this.#flatOriginalScopes.length
+      ) {
+        this.#throwInStrictMode("Invalid definition scope index");
+      } else {
+        range.originalScope =
+          this.#flatOriginalScopes[this.#rangeState.defScopeIdx];
+      }
     }
 
     this.#rangeStack.push(range);

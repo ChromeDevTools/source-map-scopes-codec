@@ -14,7 +14,7 @@ import {
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
 import { decode, DecodeMode } from "./decode.ts";
 import type { SourceMapJson } from "../scopes.d.ts";
-import { OriginalScopeFlags, Tag } from "../codec.ts";
+import { GeneratedRangeFlags, OriginalScopeFlags, Tag } from "../codec.ts";
 
 class ItemEncoder {
   #encodedItems: string[] = [];
@@ -376,5 +376,36 @@ describe("decode", () => {
     const info = decode(map, { mode: DecodeMode.LAX });
 
     assertEquals(info.ranges[0]?.values, [""]);
+  });
+
+  it("throws if GENERATED_RANGE_START.definition is not a valid original scope in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(
+      Tag.GENERATED_RANGE_START,
+      GeneratedRangeFlags.HAS_DEFINITION,
+      0,
+      1,
+    ).finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
+  });
+
+  it("ignores if GENERATED_RANGE_START.definition is not a valid original scope in lax mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(
+      Tag.GENERATED_RANGE_START,
+      GeneratedRangeFlags.HAS_DEFINITION,
+      0,
+      1,
+    ).finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    const info = decode(map, { mode: DecodeMode.LAX });
+
+    assertExists(info.ranges[0]);
+    assertStrictEquals(info.ranges[0].originalScope, undefined);
   });
 });
