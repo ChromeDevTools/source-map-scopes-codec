@@ -171,6 +171,14 @@ class Decoder {
           this.#handleGeneratedRangeBindingsItem(valueIdxs);
           break;
         }
+        case Tag.GENERATED_RANGE_CALL_SITE: {
+          this.#handleGeneratedRangeCallSite(
+            iter.nextSignedVLQ(),
+            iter.nextSignedVLQ(),
+            iter.nextSignedVLQ(),
+          );
+          break;
+        }
       }
 
       // Consume any trailing VLQ and the the ","
@@ -329,6 +337,35 @@ class Decoder {
         range.values.push(this.#resolveName(valueIdx));
       }
     }
+  }
+
+  #handleGeneratedRangeCallSite(
+    sourceIndex: number,
+    line: number,
+    column: number,
+  ) {
+    const range = this.#rangeStack.at(-1);
+    if (!range) {
+      // TODO: Throw in strict mode.
+      return;
+    }
+
+    if (sourceIndex === 0 && line === 0) {
+      this.#rangeState.callsiteColumn += column;
+    } else if (sourceIndex === 0) {
+      this.#rangeState.callsiteLine += line;
+      this.#rangeState.callsiteColumn = column;
+    } else {
+      this.#rangeState.callsiteSourceIdx += sourceIndex;
+      this.#rangeState.callsiteLine = line;
+      this.#rangeState.callsiteColumn = column;
+    }
+
+    range.callSite = {
+      sourceIndex: this.#rangeState.callsiteSourceIdx,
+      line: this.#rangeState.callsiteLine,
+      column: this.#rangeState.callsiteColumn,
+    };
   }
 
   #handleGeneratedRangeEndItem(line: number, column: number) {

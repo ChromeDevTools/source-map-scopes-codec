@@ -144,6 +144,7 @@ export class Encoder {
   #encodeGeneratedRange(range: GeneratedRange): void {
     this.#encodeGeneratedRangeStart(range);
     this.#encodeGeneratedRangeBindings(range);
+    this.#encodeGeneratedRangeCallSite(range);
     range.children.forEach((child) => this.#encodeGeneratedRange(child));
     this.#encodeGeneratedRangeEnd(range);
   }
@@ -208,6 +209,29 @@ export class Encoder {
       }
     }
     this.#finishItem();
+  }
+
+  #encodeGeneratedRangeCallSite(range: GeneratedRange) {
+    if (!range.callSite) return;
+    const { sourceIndex, line, column } = range.callSite;
+
+    // TODO: Throw if stackFrame flag is set or OriginalScope index is invalid or no generated range is here.
+
+    const encodedSourceIndex = sourceIndex - this.#rangeState.callsiteSourceIdx;
+    const encodedLine = encodedSourceIndex == 0
+      ? line - this.#rangeState.callsiteLine
+      : line;
+    const encodedColumn = encodedLine == 0
+      ? column - this.#rangeState.callsiteColumn
+      : column;
+
+    this.#rangeState.callsiteSourceIdx = sourceIndex;
+    this.#rangeState.callsiteLine = line;
+    this.#rangeState.callsiteColumn = column;
+
+    this.#encodeTag(EncodedTag.GENERATED_RANGE_CALL_SITE).#encodeSigned(
+      encodedSourceIndex,
+    ).#encodeSigned(encodedLine).#encodeSigned(encodedColumn).#finishItem();
   }
 
   #encodeGeneratedRangeEnd(range: GeneratedRange) {

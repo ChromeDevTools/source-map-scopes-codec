@@ -157,4 +157,29 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  it("handles callSites for inlined ranges", () => {
+    builder.startScope(0, 0, { key: "global" }).startScope(10, 0, {
+      key: "function",
+    }).endScope(20, 0).endScope(30, 0)
+      .startRange(0, 0, { scopeKey: "global" })
+      .startRange(0, 10, {
+        scopeKey: "function",
+        callSite: { sourceIndex: 0, line: 30, column: 5 },
+      })
+      .endRange(0, 20)
+      .startRange(0, 30, {
+        scopeKey: "function",
+        callSite: { sourceIndex: 0, line: 30, column: 20 },
+      })
+      .endRange(0, 40)
+      .startRange(0, 50, {
+        scopeKey: "function",
+        callSite: { sourceIndex: 0, line: 40, column: 2 },
+      })
+      .endRange(0, 60)
+      .endRange(0, 70);
+
+    assertCodec(builder.build());
+  });
 });
