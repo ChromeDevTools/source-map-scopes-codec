@@ -408,4 +408,24 @@ describe("decode", () => {
     assertExists(info.ranges[0]);
     assertStrictEquals(info.ranges[0].originalScope, undefined);
   });
+
+  it("throws for free GENERATED_RANGE_CALL_SITE items in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_CALL_SITE);
+    encoder.addSignedVLQs(0, 0, 0).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
+  });
+
+  it("ignores free GENERATED_RANGE_CALL_SITE items in lax mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_CALL_SITE);
+    encoder.addSignedVLQs(0, 0, 0).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    const info = decode(map, { mode: DecodeMode.LAX });
+
+    assertEquals(info.ranges, []);
+  });
 });

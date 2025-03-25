@@ -346,7 +346,9 @@ class Decoder {
   ) {
     const range = this.#rangeStack.at(-1);
     if (!range) {
-      // TODO: Throw in strict mode.
+      this.#throwInStrictMode(
+        "Encountered GENERATED_RANGE_CALL_SITE without surrounding GENERATED_RANGE_START",
+      );
       return;
     }
 
