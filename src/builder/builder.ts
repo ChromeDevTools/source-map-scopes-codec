@@ -5,6 +5,7 @@
 import type {
   Binding,
   GeneratedRange,
+  OriginalPosition,
   OriginalScope,
   ScopeInfo,
 } from "../scopes.d.ts";
@@ -135,6 +136,7 @@ export class ScopeInfoBuilder {
       isStackFrame?: boolean;
       isHidden?: boolean;
       values?: Binding[];
+      callSite?: OriginalPosition;
     },
   ): this {
     const range: GeneratedRange = {
@@ -154,6 +156,10 @@ export class ScopeInfoBuilder {
       range.originalScope = options.scope;
     } else if (options?.scopeKey !== undefined) {
       range.originalScope = this.#keyToScope.get(options.scopeKey);
+    }
+
+    if (options?.callSite) {
+      range.callSite = options.callSite;
     }
 
     this.#rangeStack.push(range);

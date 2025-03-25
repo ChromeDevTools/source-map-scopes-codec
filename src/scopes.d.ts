@@ -70,12 +70,12 @@ export interface GeneratedRange {
   isHidden: boolean;
 
   /**
-   * If this `GeneratedRange` is the result of inlining `originalScope`, then `callsite`
+   * If this `GeneratedRange` is the result of inlining `originalScope`, then `callSite`
    * refers to where `originalScope` was called in the original ("authored") code.
    *
    * If this field is present than `originalScope` is present as well and `isStackFrame` is `false`.
    */
-  callsite?: OriginalPosition;
+  callSite?: OriginalPosition;
 
   /**
    * Expressions that compute the values of the variables of this OriginalScope. The length

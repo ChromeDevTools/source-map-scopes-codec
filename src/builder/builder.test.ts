@@ -209,6 +209,18 @@ describe("ScopeInfoBuilder", () => {
 
       assertEquals(info.ranges[0]?.values, ["a", null, "b"]);
     });
+
+    it("can set the callSite position via option", () => {
+      const info = builder.startRange(0, 0, {
+        callSite: { line: 10, column: 20, sourceIndex: 0 },
+      }).endRange(0, 10).build();
+
+      assertEquals(info.ranges[0].callSite, {
+        line: 10,
+        column: 20,
+        sourceIndex: 0,
+      });
+    });
   });
 
   describe("setRangeDefinitionScope", () => {
