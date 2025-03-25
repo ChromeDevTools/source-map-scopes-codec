@@ -288,6 +288,26 @@ describe("ScopeInfoBuilder", () => {
     });
   });
 
+  describe("setRangeCallSite", () => {
+    it("sets the callSite", () => {
+      const info = builder.startRange(0, 0).setRangeCallSite({
+        line: 10,
+        column: 20,
+        sourceIndex: 0,
+      }).endRange(0, 10).build();
+
+      assertEquals(info.ranges[0].callSite, {
+        line: 10,
+        column: 20,
+        sourceIndex: 0,
+      });
+    });
+
+    it("does nothing when no range is on the stack", () => {
+      builder.setRangeCallSite({ line: 10, column: 20, sourceIndex: 0 });
+    });
+  });
+
   describe("endRange", () => {
     it("does nothing when no range is open", () => {
       builder.endRange(0, 20);

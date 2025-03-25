@@ -2,7 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import type { Binding, OriginalPosition, OriginalScope, ScopeInfo } from "../scopes.d.ts";
+import type {
+  Binding,
+  OriginalPosition,
+  OriginalScope,
+  ScopeInfo,
+} from "../scopes.d.ts";
 import { comparePositions } from "../util.ts";
 import { ScopeInfoBuilder, type ScopeKey } from "./builder.ts";
 
@@ -238,6 +243,14 @@ export class SafeScopeInfoBuilder extends ScopeInfoBuilder {
     }
 
     super.setRangeValues(values);
+    return this;
+  }
+
+  override setRangeCallSite(callSite: OriginalPosition): this {
+    this.#verifyEmptyScopeStack("setRangeCallSite");
+    this.#verifyRangePresent("setRangeCallSite");
+
+    super.setRangeCallSite(callSite);
     return this;
   }
 

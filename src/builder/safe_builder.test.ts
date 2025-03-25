@@ -298,6 +298,30 @@ describe("SafeScopeInfoBuilder", () => {
     });
   });
 
+  describe("setRangeCallSite", () => {
+    it("throws when no range is on open", () => {
+      assertThrows(() =>
+        builder.setRangeCallSite({
+          line: 10,
+          column: 20,
+          sourceIndex: 0,
+        })
+      );
+    });
+
+    it("throws while building a scope", () => {
+      builder.startScope(0, 0);
+
+      assertThrows(() =>
+        builder.setRangeCallSite({
+          line: 10,
+          column: 20,
+          sourceIndex: 0,
+        })
+      );
+    });
+  });
+
   describe("endRange", () => {
     it("throws when the range stack is empty", () => {
       assertThrows(() => builder.endRange(5, 0));

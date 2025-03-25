@@ -200,6 +200,13 @@ export class ScopeInfoBuilder {
     return this;
   }
 
+  setRangeCallSite(callSite: OriginalPosition): this {
+    const range = this.#rangeStack.at(-1);
+    if (range) range.callSite = callSite;
+
+    return this;
+  }
+
   endRange(line: number, column: number): this {
     const range = this.#rangeStack.pop();
     if (!range) return this;
