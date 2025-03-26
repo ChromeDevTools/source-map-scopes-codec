@@ -11,7 +11,11 @@ This library doesn't implement mappings encoding/decoding, but it does support e
 
 ## Installation
 
-TODO: Fill in once this package is published on JSR (and maybe NPM).
+With NPM:
+
+```sh
+npx jsr add @chrome-devtools/source-map-scopes-codec
+```
 
 ## Usage
 
