@@ -11,10 +11,10 @@ export type {
   ScopeInfo,
   SourceMapJson,
   SubRangeBinding,
-} from "./src/scopes.d.ts";
+} from "./scopes.d.ts";
 
-export { encode } from "./src/encode/encode.ts";
-export { decode, DecodeMode } from "./src/decode/decode.ts";
+export { encode } from "./encode/encode.ts";
+export { decode, DecodeMode } from "./decode/decode.ts";
 
-export { ScopeInfoBuilder } from "./src/builder/builder.ts";
-export { SafeScopeInfoBuilder } from "./src/builder/safe_builder.ts";
+export { ScopeInfoBuilder } from "./builder/builder.ts";
+export { SafeScopeInfoBuilder } from "./builder/safe_builder.ts";

@@ -5,7 +5,7 @@
 import { expandGlob } from "jsr:@std/fs";
 import { format } from "jsr:@std/fmt/bytes";
 
-import { decode, encode } from "../mod.ts";
+import { decode, encode } from "../src/mod.ts";
 
 const BENCHMARKS = await (async () => {
   const result = [];
