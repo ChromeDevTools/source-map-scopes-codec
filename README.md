@@ -1,4 +1,4 @@
-# source-map-scopes-codec
+# source-map-scopes-codec [![JSR](https://jsr.io/badges/@chrome-devtools/source-map-scopes-codec)](https://jsr.io/@chrome-devtools/source-map-scopes-codec)
 
 This library hosts a production ready implementation of the source map ["Scopes" proposal](https://github.com/tc39/ecma426/blob/main/proposals/scopes.md).
 
