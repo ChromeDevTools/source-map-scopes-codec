@@ -6,7 +6,14 @@
  * The decoded scopes information found in a source map.
  */
 export interface ScopeInfo {
+  /**
+   * The length of {@linkcode scopes} must match the length of "sources" in the source map JSON. Each entry describes the scope tree of the corresponding source file.
+   */
   scopes: (OriginalScope | null)[];
+
+  /**
+   * The range tree of the generated bundle. Multiple top-level ranges are allowed but must not overlap source position wise.
+   */
   ranges: GeneratedRange[];
 }
 
@@ -14,7 +21,10 @@ export interface ScopeInfo {
  * A scope in the authored source.
  */
 export interface OriginalScope {
+  /** The beginning of this scope (inclusive). */
   start: Position;
+
+  /** The end of this scope (exclusive) */
   end: Position;
 
   /**
@@ -42,15 +52,28 @@ export interface OriginalScope {
    */
   variables: string[];
 
+  /**
+   * The child scopes. When manually building scopes, {@linkcode children} must be sorted, not
+   * overlap each other and be contained within [start, end).
+   */
   children: OriginalScope[];
+
+  /** The parent scope or `undefined` for top-level scopes. */
   parent?: OriginalScope;
 }
 
 /**
- * A range (can be a scope) in the generated JavaScript.
+ * A range (can be a scope) in the generated JavaScript/WASM.
+ *
+ * The name "range" was chosen deliberately as a GeneratedRange does not necessarily
+ * correspond to a lexical JavaScript scope. E.g. inlining, or concatenating multiple
+ * bundles can result in generated ranges that are not lexical scopes.
  */
 export interface GeneratedRange {
+  /** The beginning of this range (inclusive) */
   start: Position;
+
+  /** The end of this range (exclusive) */
   end: Position;
 
   /**
@@ -83,7 +106,13 @@ export interface GeneratedRange {
    */
   values: Binding[];
 
+  /**
+   * The child ranges. When manually building ranges, {@linkcode children} must be sorted,
+   * not overlap each other and be contained within [start, end).
+   */
   children: GeneratedRange[];
+
+  /** The parent range or `undefined` for top-level ranges. */
   parent?: GeneratedRange;
 }
 
@@ -111,15 +140,28 @@ export interface SubRangeBinding {
   to: Position;
 }
 
+/**
+ * A position with 0-based line and column numbers.
+ *
+ * A {@linkcode Position} object by itself does not imply a position in original source
+ * or generated code. It is used in both and normally it is clear from context.
+ */
 export interface Position {
   line: number;
   column: number;
 }
 
+/**
+ * A position with 0-based line and column numbers in a specific original source file.
+ */
 export interface OriginalPosition extends Position {
+  /** The 0-based index into "sources" in the source map. Or into {@linkcode ScopeInfo.scopes}. */
   sourceIndex: number;
 }
 
+/**
+ * A standard source map json object as per https://tc39.es/ecma426.
+ */
 export interface SourceMapJson {
   version: 3;
   sources: (string | null)[];
