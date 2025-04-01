@@ -56,9 +56,6 @@ const DEFAULT_RANGE_STATE = {
   line: 0,
   column: 0,
   defScopeIdx: 0,
-  callsiteSourceIdx: 0,
-  callsiteLine: 0,
-  callsiteColumn: 0,
 };
 
 class Decoder {
@@ -173,9 +170,9 @@ class Decoder {
         }
         case Tag.GENERATED_RANGE_CALL_SITE: {
           this.#handleGeneratedRangeCallSite(
-            iter.nextSignedVLQ(),
-            iter.nextSignedVLQ(),
-            iter.nextSignedVLQ(),
+            iter.nextUnsignedVLQ(),
+            iter.nextUnsignedVLQ(),
+            iter.nextUnsignedVLQ(),
           );
           break;
         }
@@ -352,21 +349,10 @@ class Decoder {
       return;
     }
 
-    if (sourceIndex === 0 && line === 0) {
-      this.#rangeState.callsiteColumn += column;
-    } else if (sourceIndex === 0) {
-      this.#rangeState.callsiteLine += line;
-      this.#rangeState.callsiteColumn = column;
-    } else {
-      this.#rangeState.callsiteSourceIdx += sourceIndex;
-      this.#rangeState.callsiteLine = line;
-      this.#rangeState.callsiteColumn = column;
-    }
-
     range.callSite = {
-      sourceIndex: this.#rangeState.callsiteSourceIdx,
-      line: this.#rangeState.callsiteLine,
-      column: this.#rangeState.callsiteColumn,
+      sourceIndex,
+      line,
+      column,
     };
   }
 

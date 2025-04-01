@@ -22,9 +22,6 @@ const DEFAULT_RANGE_STATE = {
   line: 0,
   column: 0,
   defScopeIdx: 0,
-  callsiteSourceIdx: 0,
-  callsiteLine: 0,
-  callsiteColumn: 0,
 };
 
 export class Encoder {
@@ -217,21 +214,9 @@ export class Encoder {
 
     // TODO: Throw if stackFrame flag is set or OriginalScope index is invalid or no generated range is here.
 
-    const encodedSourceIndex = sourceIndex - this.#rangeState.callsiteSourceIdx;
-    const encodedLine = encodedSourceIndex == 0
-      ? line - this.#rangeState.callsiteLine
-      : line;
-    const encodedColumn = encodedLine == 0
-      ? column - this.#rangeState.callsiteColumn
-      : column;
-
-    this.#rangeState.callsiteSourceIdx = sourceIndex;
-    this.#rangeState.callsiteLine = line;
-    this.#rangeState.callsiteColumn = column;
-
-    this.#encodeTag(EncodedTag.GENERATED_RANGE_CALL_SITE).#encodeSigned(
-      encodedSourceIndex,
-    ).#encodeSigned(encodedLine).#encodeSigned(encodedColumn).#finishItem();
+    this.#encodeTag(EncodedTag.GENERATED_RANGE_CALL_SITE).#encodeUnsigned(
+      sourceIndex,
+    ).#encodeUnsigned(line).#encodeUnsigned(column).#finishItem();
   }
 
   #encodeGeneratedRangeEnd(range: GeneratedRange) {
