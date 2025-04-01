@@ -47,6 +47,7 @@ export function decode(
 
 const DEFAULT_SCOPE_STATE = {
   line: 0,
+  column: 0,
   name: 0,
   kind: 0,
   variable: 0,
@@ -214,9 +215,14 @@ class Decoder {
 
   #handleOriginalScopeStartItem(item: OriginalScopeStartItem) {
     this.#scopeState.line += item.line;
+    if (item.line === 0) {
+      this.#scopeState.column += item.column;
+    } else {
+      this.#scopeState.column = item.column;
+    }
     const scope: OriginalScope = {
-      start: { line: this.#scopeState.line, column: item.column },
-      end: { line: this.#scopeState.line, column: item.column },
+      start: { line: this.#scopeState.line, column: this.#scopeState.column },
+      end: { line: this.#scopeState.line, column: this.#scopeState.column },
       isStackFrame: false,
       variables: [],
       children: [],
@@ -256,6 +262,11 @@ class Decoder {
 
   #handleOriginalScopeEndItem(line: number, column: number) {
     this.#scopeState.line += line;
+    if (line === 0) {
+      this.#scopeState.column += column;
+    } else {
+      this.#scopeState.column = column;
+    }
 
     const scope = this.#scopeStack.pop();
     if (!scope) {
@@ -265,7 +276,10 @@ class Decoder {
       return;
     }
 
-    scope.end = { line: this.#scopeState.line, column };
+    scope.end = {
+      line: this.#scopeState.line,
+      column: this.#scopeState.column,
+    };
 
     if (this.#scopeStack.length > 0) {
       const parent = this.#scopeStack.at(-1)!;

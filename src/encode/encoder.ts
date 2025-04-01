@@ -81,6 +81,9 @@ export class Encoder {
 
     let flags = 0;
     const encodedLine = line - this.#scopeState.line;
+    const encodedColumn = encodedLine === 0
+      ? column - this.#scopeState.column
+      : column;
     this.#scopeState.line = line;
     this.#scopeState.column = column;
 
@@ -103,7 +106,7 @@ export class Encoder {
     if (scope.isStackFrame) flags |= OriginalScopeFlags.IS_STACK_FRAME;
 
     this.#encodeTag(EncodedTag.ORIGINAL_SCOPE_START).#encodeUnsigned(flags)
-      .#encodeUnsigned(encodedLine).#encodeUnsigned(column);
+      .#encodeUnsigned(encodedLine).#encodeUnsigned(encodedColumn);
     if (encodedName !== undefined) this.#encodeSigned(encodedName);
     if (encodedKind !== undefined) this.#encodeSigned(encodedKind);
     this.#finishItem();
@@ -130,12 +133,15 @@ export class Encoder {
     this.#verifyPositionWithScopeState(line, column);
 
     const encodedLine = line - this.#scopeState.line;
+    const encodedColumn = encodedLine === 0
+      ? column - this.#scopeState.column
+      : column;
 
     this.#scopeState.line = line;
     this.#scopeState.column = column;
 
     this.#encodeTag(EncodedTag.ORIGINAL_SCOPE_END).#encodeUnsigned(encodedLine)
-      .#encodeUnsigned(column).#finishItem();
+      .#encodeUnsigned(encodedColumn).#finishItem();
   }
 
   #encodeGeneratedRange(range: GeneratedRange): void {
