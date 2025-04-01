@@ -10,7 +10,7 @@ import { decode, encode } from "../src/mod.ts";
 const BENCHMARKS = await (async () => {
   const result = [];
   for await (
-    const file of expandGlob("*.js.map", { root: import.meta.dirname })
+    const file of expandGlob("maps/*.js.map", { root: import.meta.dirname })
   ) {
     const mapContent = Deno.readTextFileSync(file.path);
     const mapJson = JSON.parse(mapContent);
