@@ -78,6 +78,21 @@ describe("round trip", () => {
     assertCodec(builder.build());
   });
 
+  it("handles names/kinds across multiple top-level scopes", () => {
+    builder.startScope(0, 0, { kind: "Global" }).startScope(10, 5, {
+      kind: "Function",
+      name: "foo",
+    })
+      .endScope(20, 0).endScope(30, 0);
+    builder.startScope(0, 0, { kind: "Global" }).startScope(10, 5, {
+      kind: "Function",
+      name: "bar",
+    })
+      .endScope(20, 0).endScope(30, 0);
+
+    assertCodec(builder.build());
+  });
+
   it("handles isStackFrame flag on scopes", () => {
     builder.startScope(0, 0, { isStackFrame: true }).endScope(10, 0);
 

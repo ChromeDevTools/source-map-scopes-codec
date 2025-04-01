@@ -52,7 +52,8 @@ export class Encoder {
   encode(): string {
     this.#encodedItems = [];
     this.#info.scopes.forEach((scope) => {
-      Object.assign(this.#scopeState, DEFAULT_SCOPE_STATE);
+      this.#scopeState.line = 0;
+      this.#scopeState.column = 0;
       this.#encodeOriginalScope(scope);
     });
     this.#info.ranges.forEach((range) => {

@@ -287,7 +287,8 @@ class Decoder {
       parent.children.push(scope);
     } else {
       this.#scopes.push(scope);
-      Object.assign(this.#scopeState, DEFAULT_SCOPE_STATE);
+      this.#scopeState.line = 0;
+      this.#scopeState.column = 0;
     }
   }
 
