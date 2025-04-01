@@ -397,7 +397,6 @@ class Decoder {
       parent.children.push(range);
     } else {
       this.#ranges.push(range);
-      Object.assign(this.#rangeState, DEFAULT_RANGE_STATE);
     }
   }
 

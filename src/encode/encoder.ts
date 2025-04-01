@@ -56,7 +56,6 @@ export class Encoder {
       this.#encodeOriginalScope(scope);
     });
     this.#info.ranges.forEach((range) => {
-      Object.assign(this.#rangeState, DEFAULT_RANGE_STATE);
       this.#encodeGeneratedRange(range);
     });
 
