@@ -163,7 +163,7 @@ class Decoder {
           const valueIdxs: number[] = [];
 
           while (iter.hasNext() && iter.peek() !== ",") {
-            valueIdxs.push(iter.nextSignedVLQ());
+            valueIdxs.push(iter.nextUnsignedVLQ());
           }
 
           this.#handleGeneratedRangeBindingsItem(valueIdxs);
@@ -343,10 +343,10 @@ class Decoder {
     }
 
     for (const valueIdx of valueIdxs) {
-      if (valueIdx === -1) {
+      if (valueIdx === 0) {
         range.values.push(null);
       } else {
-        range.values.push(this.#resolveName(valueIdx));
+        range.values.push(this.#resolveName(valueIdx - 1));
       }
     }
   }

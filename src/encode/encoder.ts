@@ -204,9 +204,9 @@ export class Encoder {
     this.#encodeTag(EncodedTag.GENERATED_RANGE_BINDINGS);
     for (const val of range.values) {
       if (val === null || val == undefined) {
-        this.#encodeSigned(-1);
+        this.#encodeUnsigned(0);
       } else if (typeof val === "string") {
-        this.#encodeSigned(this.#resolveNamesIdx(val));
+        this.#encodeUnsigned(this.#resolveNamesIdx(val) + 1);
       } else {
         throw new Error("Sub-range bindings not implemented yet!");
       }
