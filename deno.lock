@@ -1,6 +1,7 @@
 {
   "version": "4",
   "specifiers": {
+    "jsr:@chrome-devtools/source-map-scopes-codec@0.2.0": "0.2.0",
     "jsr:@std/assert@*": "1.0.11",
     "jsr:@std/assert@^1.0.10": "1.0.11",
     "jsr:@std/cli@*": "1.0.6",
@@ -11,6 +12,9 @@
     "jsr:@std/testing@*": "1.0.9"
   },
   "jsr": {
+    "@chrome-devtools/source-map-scopes-codec@0.2.0": {
+      "integrity": "e538be2e43240628650abc2b3a0daf255755718932380b950a96b0b170318230"
+    },
     "@std/assert@1.0.11": {
       "integrity": "2461ef3c368fe88bc60e186e7744a93112f16fd110022e113a0849e94d1c83c1",
       "dependencies": [
