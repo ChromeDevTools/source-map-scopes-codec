@@ -203,4 +203,70 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  it("handles sub-range bindings", () => {
+    builder.startScope(0, 0, {
+      key: "scope",
+      variables: ["v1", "v2", "v3", "v4"],
+    }).endScope(10, 0);
+
+    builder.startRange(0, 0, {
+      scopeKey: "scope",
+      values: [
+        // v1: no sub-ranges
+        "v1_expr",
+        // v2: one sub-range transition
+        [
+          {
+            from: { line: 0, column: 0 },
+            to: { line: 5, column: 0 },
+            value: "v2_initial_expr",
+          },
+          {
+            from: { line: 5, column: 0 },
+            to: { line: 10, column: 0 },
+            value: "v2_final_expr",
+          },
+        ],
+        // v3: multiple sub-range transitions
+        [
+          {
+            from: { line: 0, column: 0 },
+            to: { line: 2, column: 0 },
+            value: "v3_expr1",
+          },
+          {
+            from: { line: 2, column: 0 },
+            to: { line: 6, column: 0 },
+            value: "v3_expr2",
+          },
+          {
+            from: { line: 6, column: 0 },
+            to: { line: 10, column: 0 },
+            value: "v3_expr3",
+          },
+        ],
+        // v4: multiple sub-ranges with unavailable parts
+        [
+          {
+            from: { line: 0, column: 0 },
+            to: { line: 3, column: 0 },
+            value: "v4_expr1",
+          },
+          {
+            from: { line: 3, column: 0 },
+            to: { line: 7, column: 0 },
+            value: undefined, // unavailable
+          },
+          {
+            from: { line: 7, column: 0 },
+            to: { line: 10, column: 0 },
+            value: "v4_expr2",
+          },
+        ],
+      ],
+    }).endRange(10, 0);
+
+    assertCodec(builder.build());
+  });
 });
