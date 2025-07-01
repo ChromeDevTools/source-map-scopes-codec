@@ -107,4 +107,36 @@ describe("encode", () => {
 
     assertThrows(() => encode(info));
   });
+
+  it("throws when sub-range bindings are not sorted", () => {
+    const info = builder.startScope(0, 0, { key: "key", variables: ["a"] })
+      .endScope(10, 0).startRange(0, 0, {
+        scopeKey: "key",
+        values: [[{
+          from: { line: 5, column: 0 },
+          to: { line: 10, column: 0 },
+        }, {
+          from: { line: 0, column: 0 },
+          to: { line: 5, column: 0 },
+        }]],
+      }).endRange(10, 0).build();
+
+    assertThrows(() => encode(info));
+  });
+
+  it("throws when sub-range bindings have a gap", () => {
+    const info = builder.startScope(0, 0, { key: "key", variables: ["a"] })
+      .endScope(10, 0).startRange(0, 0, {
+        scopeKey: "key",
+        values: [[{
+          from: { line: 0, column: 0 },
+          to: { line: 4, column: 0 },
+        }, {
+          from: { line: 5, column: 0 },
+          to: { line: 10, column: 0 },
+        }]],
+      }).endRange(10, 0).build();
+
+    assertThrows(() => encode(info));
+  });
 });
