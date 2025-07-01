@@ -428,4 +428,68 @@ describe("decode", () => {
 
     assertEquals(info.ranges, []);
   });
+
+  it("throws for multiple GENERATED_RANGE_SUBRANGE_BINDING items for the same variable in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0, 0).finishItem();
+    // Sub-range binding for variable 0
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 0, 1, 1, 0)
+      .finishItem();
+    // Duplicate sub-range binding for variable 0
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 0, 1, 2, 0)
+      .finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2, 0).finishItem();
+    const map = createMap(encoder.encode(), ["foo"]);
+
+    assertThrows(
+      () => decode(map, { mode: DecodeMode.STRICT }),
+      Error,
+      "Encountered multiple GENERATED_RANGE_SUBRANGE_BINDING items for the same variable",
+    );
+  });
+
+  it("ignores multiple GENERATED_RANGE_SUBRANGE_BINDING items for the same variable in lax mode", () => {
+    const encoder = new ItemEncoder();
+    // Original scope with 1 variable.
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
+
+    // Generated range from 0,0 to 3,0, referencing the original scope.
+    encoder.addUnsignedVLQs(
+      Tag.GENERATED_RANGE_START,
+      GeneratedRangeFlags.HAS_DEFINITION,
+      0,
+      0,
+    ).addSignedVLQs(0).finishItem();
+    // Initial binding for the variable is "bar" (index 2).
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS, 2).finishItem();
+
+    // 1st sub-range binding for variable 0. from 1,0, value is "var1" (index 1)
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 0, 1, 1, 0)
+      .finishItem();
+    // 2nd sub-range binding for variable 0. from 2,0, value is "baz" (index 3)
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 0, 3, 1, 0)
+      .finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 3, 0).finishItem();
+    const map = createMap(encoder.encode(), ["var1", "bar", "baz"]);
+
+    const info = decode(map, { mode: DecodeMode.LAX });
+
+    assertExists(info.ranges[0]);
+    assertEquals(info.ranges[0].values, [
+      [
+        {
+          value: "bar",
+          from: { line: 0, column: 0 },
+          to: { line: 1, column: 0 },
+        },
+        {
+          value: "var1",
+          from: { line: 1, column: 0 },
+          to: { line: 3, column: 0 },
+        },
+      ],
+    ]);
+  });
 });

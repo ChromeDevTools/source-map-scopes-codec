@@ -14,6 +14,7 @@ import type {
   OriginalScope,
   ScopeInfo,
   SourceMapJson,
+  SubRangeBinding,
 } from "../scopes.d.ts";
 import { TokenIterator } from "../vlq.ts";
 
@@ -74,6 +75,7 @@ class Decoder {
   readonly #rangeStack: GeneratedRange[] = [];
 
   #flatOriginalScopes: OriginalScope[] = [];
+  #subRangeBindingsForRange = new Map<number, [number, number, number][]>();
 
   constructor(scopes: string, names: string[], options?: { mode: DecodeMode }) {
     this.#encodedScopes = scopes;
@@ -167,6 +169,21 @@ class Decoder {
           }
 
           this.#handleGeneratedRangeBindingsItem(valueIdxs);
+          break;
+        }
+        case Tag.GENERATED_RANGE_SUBRANGE_BINDING: {
+          const variableIndex = iter.nextUnsignedVLQ();
+          const bindings: [number, number, number][] = [];
+
+          while (iter.hasNext() && iter.peek() !== ",") {
+            bindings.push([
+              iter.nextUnsignedVLQ(),
+              iter.nextUnsignedVLQ(),
+              iter.nextUnsignedVLQ(),
+            ]);
+          }
+
+          this.#recordGeneratedSubRangeBindingItem(variableIndex, bindings);
           break;
         }
         case Tag.GENERATED_RANGE_CALL_SITE: {
@@ -331,6 +348,7 @@ class Decoder {
     }
 
     this.#rangeStack.push(range);
+    this.#subRangeBindingsForRange.clear();
   }
 
   #handleGeneratedRangeBindingsItem(valueIdxs: number[]) {
@@ -349,6 +367,19 @@ class Decoder {
         range.values.push(this.#resolveName(valueIdx - 1));
       }
     }
+  }
+
+  #recordGeneratedSubRangeBindingItem(
+    variableIndex: number,
+    bindings: [number, number, number][],
+  ) {
+    if (this.#subRangeBindingsForRange.has(variableIndex)) {
+      this.#throwInStrictMode(
+        "Encountered multiple GENERATED_RANGE_SUBRANGE_BINDING items for the same variable",
+      );
+      return;
+    }
+    this.#subRangeBindingsForRange.set(variableIndex, bindings);
   }
 
   #handleGeneratedRangeCallSite(
@@ -392,12 +423,56 @@ class Decoder {
       column: this.#rangeState.column,
     };
 
+    this.#handleGeneratedRangeSubRangeBindings(range);
+
     if (this.#rangeStack.length > 0) {
       const parent = this.#rangeStack.at(-1)!;
       range.parent = parent;
       parent.children.push(range);
     } else {
       this.#ranges.push(range);
+    }
+  }
+
+  #handleGeneratedRangeSubRangeBindings(range: GeneratedRange) {
+    for (const [variableIndex, bindings] of this.#subRangeBindingsForRange) {
+      const value = range.values[variableIndex];
+      const subRanges: SubRangeBinding[] = [];
+      range.values[variableIndex] = subRanges;
+
+      let lastLine = range.start.line;
+      let lastColumn = range.start.column;
+
+      subRanges.push({
+        from: { line: lastLine, column: lastColumn },
+        to: { line: 0, column: 0 },
+        value: value as string | undefined,
+      });
+
+      for (const [binding, line, column] of bindings) {
+        lastLine += line;
+        if (line === 0) {
+          lastColumn += column;
+        } else {
+          lastColumn = column;
+        }
+
+        subRanges.push({
+          from: { line: lastLine, column: lastColumn },
+          to: { line: 0, column: 0 }, // This will be fixed in the post-processing step.
+          value: binding === 0 ? undefined : this.#resolveName(binding - 1),
+        });
+      }
+    }
+
+    for (const value of range.values) {
+      if (Array.isArray(value)) {
+        const subRanges = value;
+        for (let i = 0; i < subRanges.length - 1; ++i) {
+          subRanges[i].to = subRanges[i + 1].from;
+        }
+        subRanges[subRanges.length - 1].to = range.end;
+      }
     }
   }
 
