@@ -338,5 +338,127 @@ describe("SafeScopeInfoBuilder", () => {
 
       assertThrows(() => builder.endRange(5, 0));
     });
+
+    describe("sub-range bindings", () => {
+      beforeEach(() => {
+        builder.startScope(0, 0, { key: "test-scope", variables: ["foo"] })
+          .endScope(20, 0);
+      });
+
+      it("allows empty sub-range bindings", () => {
+        builder.startRange(0, 0, { scopeKey: "test-scope", values: [[]] })
+          .endRange(10, 0);
+      });
+
+      it("allows single item sub-range bindings", () => {
+        builder.startRange(0, 0, {
+          scopeKey: "test-scope",
+          values: [[{
+            value: "a",
+            from: { line: 0, column: 0 },
+            to: { line: 10, column: 0 },
+          }]],
+        })
+          .endRange(10, 0);
+      });
+
+      it("allows multi-item sub-range bindings", () => {
+        builder.startRange(0, 0, {
+          scopeKey: "test-scope",
+          values: [[{
+            value: "a",
+            from: { line: 0, column: 0 },
+            to: { line: 5, column: 0 },
+          }, {
+            value: "b",
+            from: { line: 5, column: 0 },
+            to: { line: 10, column: 0 },
+          }]],
+        })
+          .endRange(10, 0);
+      });
+
+      it("throws if the first sub-range does not start at the range start", () => {
+        builder.startRange(0, 0, {
+          scopeKey: "test-scope",
+          values: [[{
+            value: "a",
+            from: { line: 1, column: 0 },
+            to: { line: 10, column: 0 },
+          }]],
+        });
+
+        assertThrows(() => builder.endRange(10, 0));
+      });
+
+      it("throws if the last sub-range does not end at the range end", () => {
+        builder.startRange(0, 0, {
+          scopeKey: "test-scope",
+          values: [[{
+            value: "a",
+            from: { line: 0, column: 0 },
+            to: { line: 8, column: 0 },
+          }]],
+        });
+
+        assertThrows(() => builder.endRange(10, 0));
+      });
+
+      it("throws if sub-ranges are not sorted", () => {
+        builder.startRange(0, 0, {
+          scopeKey: "test-scope",
+          values: [[{
+            value: "a",
+            from: { line: 5, column: 0 },
+            to: { line: 10, column: 0 },
+          }, {
+            value: "b",
+            from: { line: 0, column: 0 },
+            to: { line: 5, column: 0 },
+          }]],
+        });
+
+        assertThrows(() => builder.endRange(10, 0));
+      });
+
+      it("throws if sub-ranges have a gap", () => {
+        builder.startRange(0, 0, {
+          scopeKey: "test-scope",
+          values: [[{
+            value: "a",
+            from: { line: 0, column: 0 },
+            to: { line: 4, column: 0 },
+          }, {
+            value: "b",
+            from: { line: 5, column: 0 },
+            to: { line: 10, column: 0 },
+          }]],
+        });
+
+        assertThrows(() => builder.endRange(10, 0));
+      });
+
+      it("throws if a sub-range 'from' does not precede 'to'", () => {
+        builder.startRange(0, 0, {
+          scopeKey: "test-scope",
+          values: [[{
+            value: "a",
+            from: { line: 5, column: 0 },
+            to: { line: 5, column: 0 },
+          }]],
+        });
+        assertThrows(() => builder.endRange(10, 0));
+
+        builder.startRange(0, 0, {
+          scopeKey: "test-scope",
+          values: [[{
+            value: "a",
+            from: { line: 6, column: 0 },
+            to: { line: 5, column: 0 },
+          }]],
+        });
+        assertThrows(() => builder.endRange(10, 0));
+      });
+    });
   });
 });
