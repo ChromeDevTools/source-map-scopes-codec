@@ -11,8 +11,11 @@ import {
 } from "../codec.ts";
 import type {
   GeneratedRange,
+  IndexSourceMapJson,
   OriginalScope,
+  Position,
   ScopeInfo,
+  SourceMap,
   SourceMapJson,
   SubRangeBinding,
 } from "../scopes.d.ts";
@@ -37,13 +40,62 @@ export const enum DecodeMode {
   LAX = 2,
 }
 
+export interface DecodeOptions {
+  mode: DecodeMode;
+
+  /**
+   * Offsets `start` and `end` of all generated ranges by the specified amount.
+   * Intended to be used when decoding sections of index source maps one-by-one.
+   *
+   * Has no effect when passing a {@link IndexSourceMapJson} directly to {@link decode}.
+   */
+  generatedOffset: Position;
+}
+
+export const DEFAULT_DECODE_OPTIONS: DecodeOptions = {
+  mode: DecodeMode.LAX,
+  generatedOffset: { line: 0, column: 0 },
+};
+
 export function decode(
+  sourceMap: SourceMap,
+  options: Partial<DecodeOptions> = DEFAULT_DECODE_OPTIONS,
+): ScopeInfo {
+  const opts = { ...DEFAULT_DECODE_OPTIONS, ...options };
+  if ("sections" in sourceMap) {
+    return decodeIndexMap(sourceMap, {
+      ...opts,
+      generatedOffset: { line: 0, column: 0 },
+    });
+  }
+  return decodeMap(sourceMap, opts);
+}
+
+function decodeMap(
   sourceMap: SourceMapJson,
-  options?: { mode: DecodeMode },
+  options: DecodeOptions,
 ): ScopeInfo {
   if (!sourceMap.scopes || !sourceMap.names) return { scopes: [], ranges: [] };
 
   return new Decoder(sourceMap.scopes, sourceMap.names, options).decode();
+}
+
+function decodeIndexMap(
+  sourceMap: IndexSourceMapJson,
+  options: DecodeOptions,
+): ScopeInfo {
+  const scopeInfo: ScopeInfo = { scopes: [], ranges: [] };
+
+  for (const section of sourceMap.sections) {
+    const { scopes, ranges } = decode(section.map, {
+      ...options,
+      generatedOffset: section.offset,
+    });
+    for (const scope of scopes) scopeInfo.scopes.push(scope);
+    for (const range of ranges) scopeInfo.ranges.push(range);
+  }
+
+  return scopeInfo;
 }
 
 const DEFAULT_SCOPE_STATE = {
@@ -77,10 +129,12 @@ class Decoder {
   #flatOriginalScopes: OriginalScope[] = [];
   #subRangeBindingsForRange = new Map<number, [number, number, number][]>();
 
-  constructor(scopes: string, names: string[], options?: { mode: DecodeMode }) {
+  constructor(scopes: string, names: string[], options: DecodeOptions) {
     this.#encodedScopes = scopes;
     this.#names = names;
-    this.#mode = options?.mode ?? DecodeMode.LAX;
+    this.#mode = options.mode;
+    this.#rangeState.line = options.generatedOffset.line;
+    this.#rangeState.column = options.generatedOffset.column;
   }
 
   decode(): ScopeInfo {

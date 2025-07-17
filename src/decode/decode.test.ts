@@ -13,7 +13,7 @@ import {
 } from "jsr:@std/assert";
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
 import { decode, DecodeMode } from "./decode.ts";
-import type { SourceMapJson } from "../scopes.d.ts";
+import type { IndexSourceMapJson, SourceMapJson } from "../scopes.d.ts";
 import { GeneratedRangeFlags, OriginalScopeFlags, Tag } from "../codec.ts";
 
 class ItemEncoder {
@@ -491,5 +491,70 @@ describe("decode", () => {
         },
       ],
     ]);
+  });
+
+  it("applies 'generatedOffset' option correctly for line 0", () => {
+    const scopes = new ScopeInfoBuilder().startRange(0, 0).endRange(0, 10)
+      .build();
+    const map = encode(scopes);
+
+    const info = decode(map, { generatedOffset: { line: 0, column: 20 } });
+
+    assertEquals(info.ranges[0].start, { line: 0, column: 20 });
+    assertEquals(info.ranges[0].end, { line: 0, column: 30 });
+  });
+
+  it("applies 'generatedOffset' option correctly for non-zero line and column", () => {
+    const scopes = new ScopeInfoBuilder().startRange(0, 10).endRange(0, 20)
+      .build();
+    const map = encode(scopes);
+
+    const info = decode(map, { generatedOffset: { line: 2, column: 5 } });
+
+    assertEquals(info.ranges[0].start, { line: 2, column: 15 });
+    assertEquals(info.ranges[0].end, { line: 2, column: 25 });
+  });
+
+  it("decodes index source maps", () => {
+    const map1 = encode(
+      new ScopeInfoBuilder().startRange(0, 0).endRange(0, 10)
+        .build(),
+    );
+    const map2 = encode(
+      new ScopeInfoBuilder().startRange(0, 0).endRange(1, 20)
+        .build(),
+    );
+    const map: IndexSourceMapJson = {
+      version: 3,
+      sections: [
+        { offset: { line: 0, column: 0 }, map: map1 },
+        { offset: { line: 1, column: 42 }, map: map2 },
+      ],
+    };
+
+    const info = decode(map);
+
+    assertEquals(info.ranges[0].start, { line: 0, column: 0 });
+    assertEquals(info.ranges[0].end, { line: 0, column: 10 });
+    assertEquals(info.ranges[1].start, { line: 1, column: 42 });
+    assertEquals(info.ranges[1].end, { line: 2, column: 20 });
+  });
+
+  it("ignores 'generatedOffset' option for index source maps", () => {
+    const map1 = encode(
+      new ScopeInfoBuilder().startRange(0, 0).endRange(0, 10)
+        .build(),
+    );
+    const map: IndexSourceMapJson = {
+      version: 3,
+      sections: [
+        { offset: { line: 0, column: 0 }, map: map1 },
+      ],
+    };
+
+    const info = decode(map, { generatedOffset: { line: 4, column: 42 } });
+
+    assertEquals(info.ranges[0].start, { line: 0, column: 0 });
+    assertEquals(info.ranges[0].end, { line: 0, column: 10 });
   });
 });
