@@ -18,7 +18,7 @@ import type {
   SourceMap,
   SourceMapJson,
   SubRangeBinding,
-} from "../scopes.d.ts";
+} from "../scopes.ts";
 import { TokenIterator } from "../vlq.ts";
 
 /**

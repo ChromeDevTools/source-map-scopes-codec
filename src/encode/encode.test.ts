@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
-import type { ScopeInfo, SourceMapJson } from "../scopes.d.ts";
+import type { ScopeInfo, SourceMapJson } from "../scopes.ts";
 import { assertStrictEquals, assertThrows } from "jsr:@std/assert";
 import { encode } from "./encode.ts";
 import { ScopeInfoBuilder } from "../builder/builder.ts";

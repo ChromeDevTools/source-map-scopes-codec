@@ -7,7 +7,7 @@ import {
   GeneratedRangeFlags,
   OriginalScopeFlags,
 } from "../codec.ts";
-import type { GeneratedRange, OriginalScope, ScopeInfo } from "../scopes.d.ts";
+import type { GeneratedRange, OriginalScope, ScopeInfo } from "../scopes.ts";
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
 import { comparePositions } from "../util.ts";
 

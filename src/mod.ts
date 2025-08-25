@@ -11,7 +11,7 @@ export type {
   ScopeInfo,
   SourceMapJson,
   SubRangeBinding,
-} from "./scopes.d.ts";
+} from "./scopes.ts";
 
 export { encode } from "./encode/encode.ts";
 export { decode, DecodeMode } from "./decode/decode.ts";

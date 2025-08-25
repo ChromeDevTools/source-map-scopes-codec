@@ -8,7 +8,7 @@
  */
 
 import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
-import type { ScopeInfo } from "./scopes.d.ts";
+import type { ScopeInfo } from "./scopes.ts";
 import { encode } from "./encode/encode.ts";
 import { decode } from "./decode/decode.ts";
 import { assertEquals } from "jsr:@std/assert";

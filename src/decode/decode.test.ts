@@ -13,7 +13,7 @@ import {
 } from "jsr:@std/assert";
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
 import { decode, DecodeMode } from "./decode.ts";
-import type { IndexSourceMapJson, SourceMapJson } from "../scopes.d.ts";
+import type { IndexSourceMapJson, SourceMapJson } from "../scopes.ts";
 import { GeneratedRangeFlags, OriginalScopeFlags, Tag } from "../codec.ts";
 
 class ItemEncoder {
