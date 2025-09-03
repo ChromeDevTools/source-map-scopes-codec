@@ -48,7 +48,7 @@ describe("encode", () => {
   it("encodes null OriginalScopes correctly", () => {
     const info = builder.addNullScope().addNullScope().addNullScope().build();
 
-    assertStrictEquals(encode(info).scopes, ",,");
+    assertStrictEquals(encode(info).scopes, "A,A,A");
   });
 
   it("throws when a child scope' start is not nested properly within its parent", () => {

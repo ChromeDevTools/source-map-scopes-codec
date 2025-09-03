@@ -66,7 +66,7 @@ export class Encoder {
 
   #encodeOriginalScope(scope: OriginalScope | null): void {
     if (scope === null) {
-      this.#encodedItems.push("");
+      this.#encodedItems.push(EncodedTag.EMPTY);
       return;
     }
 

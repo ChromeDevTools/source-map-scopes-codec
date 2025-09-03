@@ -141,14 +141,11 @@ class Decoder {
     const iter = new TokenIterator(this.#encodedScopes);
 
     while (iter.hasNext()) {
-      if (iter.peek() === ",") {
-        iter.nextChar(); // Consume ",".
-        this.#scopes.push(null); // Add an EmptyItem;
-        continue;
-      }
-
       const tag = iter.nextUnsignedVLQ();
       switch (tag) {
+        case Tag.EMPTY:
+          this.#scopes.push(null);
+          break;
         case Tag.ORIGINAL_SCOPE_START: {
           const item: OriginalScopeStartItem = {
             flags: iter.nextUnsignedVLQ(),
@@ -253,11 +250,6 @@ class Decoder {
       // Consume any trailing VLQ and the the ","
       while (iter.hasNext() && iter.peek() !== ",") iter.nextUnsignedVLQ();
       if (iter.hasNext()) iter.nextChar();
-    }
-
-    if (iter.currentChar() === ",") {
-      // Handle trailing EmptyItem.
-      this.#scopes.push(null);
     }
 
     if (this.#scopeStack.length > 0) {
