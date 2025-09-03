@@ -269,4 +269,24 @@ describe("round trip", () => {
 
     assertCodec(builder.build());
   });
+
+  // Regression test for issue #1.
+  it("handles sub-ranges correctly when the range has children", () => {
+    builder.startScope(0, 0, { variables: ["x"], key: "root" }).endScope(1, 19)
+      .startRange(0, 0, {
+        scopeKey: "root",
+        values: [[{
+          from: { line: 0, column: 0 },
+          to: { line: 1, column: 0 },
+          value: '"foo"',
+        }, {
+          from: { line: 1, column: 0 },
+          to: { line: 1, column: 19 },
+          value: '"bar"',
+        }]],
+      }).startRange(0, 5)
+      .endRange(0, 10).endRange(1, 19);
+
+    assertCodec(builder.build());
+  });
 });
