@@ -557,4 +557,38 @@ describe("decode", () => {
     assertEquals(info.ranges[0].start, { line: 0, column: 0 });
     assertEquals(info.ranges[0].end, { line: 0, column: 10 });
   });
+
+  it("ignores vendor extensions", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.VENDOR_EXTENSION, 0);
+    encoder.finishItem();
+    const map = createMap(encoder.encode(), ["x_ext_item"]);
+
+    assertEquals(decode(map, { mode: DecodeMode.STRICT }), {
+      scopes: [],
+      ranges: [],
+    });
+  });
+
+  it("throws for invalid item tags in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(42, 1, 2, 3);
+    encoder.finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    assertThrows(
+      () => decode(map, { mode: DecodeMode.STRICT }),
+      Error,
+      "Encountered illegal item tag 42",
+    );
+  });
+
+  it("ignores invalid item tags in lax mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(42, 1, 2, 3);
+    encoder.finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    assertEquals(decode(map), { scopes: [], ranges: [] });
+  });
 });

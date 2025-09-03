@@ -143,9 +143,10 @@ class Decoder {
     while (iter.hasNext()) {
       const tag = iter.nextUnsignedVLQ();
       switch (tag) {
-        case Tag.EMPTY:
+        case Tag.EMPTY: {
           this.#scopes.push(null);
           break;
+        }
         case Tag.ORIGINAL_SCOPE_START: {
           const item: OriginalScopeStartItem = {
             flags: iter.nextUnsignedVLQ(),
@@ -243,6 +244,14 @@ class Decoder {
             iter.nextUnsignedVLQ(),
             iter.nextUnsignedVLQ(),
           );
+          break;
+        }
+        case Tag.VENDOR_EXTENSION: {
+          const _extensionNameIdx = iter.nextUnsignedVLQ();
+          break;
+        }
+        default: {
+          this.#throwInStrictMode(`Encountered illegal item tag ${tag}`);
           break;
         }
       }
