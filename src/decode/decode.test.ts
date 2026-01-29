@@ -6,8 +6,10 @@ import { describe, it } from "@std/testing/bdd";
 import { ScopeInfoBuilder } from "../builder/builder.ts";
 import { encode } from "../encode/encode.ts";
 import {
+  assert,
   assertEquals,
   assertExists,
+  assertFalse,
   assertStrictEquals,
   assertThrows,
 } from "@std/assert";
@@ -75,7 +77,7 @@ describe("decode", () => {
       encodeUnsigned(256),
     ];
     map.scopes = items.join(",");
-    assertEquals(decode(map), info);
+    assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
   });
 
   it("handles trailing VLQs in ORIGINAL_SCOPE_START items", () => {
@@ -90,7 +92,7 @@ describe("decode", () => {
     parts[0] += encodeSigned(-16);
     map.scopes = parts.join(",");
 
-    assertEquals(decode(map), info);
+    assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
   });
 
   it("handles trailing VLQs in ORIGINAL_SCOPE_END items", () => {
@@ -105,7 +107,7 @@ describe("decode", () => {
     parts[1] += encodeSigned(-16);
     map.scopes = parts.join(",");
 
-    assertEquals(decode(map), info);
+    assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
   });
 
   it("ignores wrong 'name' indices in lax mode", () => {
@@ -567,6 +569,7 @@ describe("decode", () => {
     assertEquals(decode(map, { mode: DecodeMode.STRICT }), {
       scopes: [],
       ranges: [],
+      hasVariableAndBindingInfo: false,
     });
   });
 
@@ -589,6 +592,63 @@ describe("decode", () => {
     encoder.finishItem();
     const map = createMap(encoder.encode(), []);
 
-    assertEquals(decode(map), { scopes: [], ranges: [] });
+    assertEquals(decode(map), {
+      scopes: [],
+      ranges: [],
+      hasVariableAndBindingInfo: false,
+    });
+  });
+
+  describe("hasVariableAndBindingInfo", () => {
+    it("is 'false' when no variables/bindings are present", () => {
+      const map = encode(
+        new ScopeInfoBuilder().startScope(0, 0, {
+          isStackFrame: true,
+          key: "fn",
+        }).endScope(10, 0).startRange(0, 0, {
+          scopeKey: "fn",
+          isStackFrame: true,
+        }).endRange(0, 10).build(),
+      );
+
+      const { hasVariableAndBindingInfo } = decode(map);
+
+      assertFalse(hasVariableAndBindingInfo);
+    });
+
+    it("is 'false' when only variables are present", () => {
+      const map = encode(
+        new ScopeInfoBuilder().startScope(0, 0, {
+          isStackFrame: true,
+          key: "fn",
+          variables: ["foo", "bar"],
+        }).endScope(10, 0).startRange(0, 0, {
+          scopeKey: "fn",
+          isStackFrame: true,
+        }).endRange(0, 10).build(),
+      );
+
+      const { hasVariableAndBindingInfo } = decode(map);
+
+      assertFalse(hasVariableAndBindingInfo);
+    });
+
+    it("is 'true' when variables/bindings are present", () => {
+      const map = encode(
+        new ScopeInfoBuilder().startScope(0, 0, {
+          isStackFrame: true,
+          key: "fn",
+          variables: ["foo", "bar"],
+        }).endScope(10, 0).startRange(0, 0, {
+          scopeKey: "fn",
+          isStackFrame: true,
+          values: ["n", "m"],
+        }).endRange(0, 10).build(),
+      );
+
+      const { hasVariableAndBindingInfo } = decode(map);
+
+      assert(hasVariableAndBindingInfo);
+    });
   });
 });
