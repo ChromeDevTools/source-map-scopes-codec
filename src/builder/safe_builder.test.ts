@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
+import { beforeEach, describe, it } from "@std/testing/bdd";
 import { SafeScopeInfoBuilder } from "./safe_builder.ts";
-import { assertThrows } from "jsr:@std/assert";
+import { assertThrows } from "@std/assert";
 
 describe("SafeScopeInfoBuilder", () => {
   let builder: SafeScopeInfoBuilder;

@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
+import { beforeEach, describe, it } from "@std/testing/bdd";
 import type { ScopeInfo, SourceMapJson } from "../scopes.ts";
-import { assertStrictEquals, assertThrows } from "jsr:@std/assert";
+import { assertStrictEquals, assertThrows } from "@std/assert";
 import { encode } from "./encode.ts";
 import { ScopeInfoBuilder } from "../builder/builder.ts";
 

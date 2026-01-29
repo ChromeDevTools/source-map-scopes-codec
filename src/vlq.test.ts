@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import { describe, it } from "jsr:@std/testing/bdd";
+import { describe, it } from "@std/testing/bdd";
 import { TokenIterator } from "./vlq.ts";
-import { assertFalse, assertStrictEquals } from "jsr:@std/assert";
+import { assertFalse, assertStrictEquals } from "@std/assert";
 
 describe("TokenIterator", () => {
   describe("nextUnsignedVLQ", () => {

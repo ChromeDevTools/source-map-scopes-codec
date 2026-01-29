@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
+import { beforeEach, describe, it } from "@std/testing/bdd";
 import { ScopeInfoBuilder } from "./builder.ts";
 import {
   assertEquals,
   assertNotStrictEquals,
   assertStrictEquals,
-} from "jsr:@std/assert";
+} from "@std/assert";
 
 describe("ScopeInfoBuilder", () => {
   let builder: ScopeInfoBuilder;

@@ -7,11 +7,11 @@
  * check that the same `ScopesInfo` falls out.
  */
 
-import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
+import { beforeEach, describe, it } from "@std/testing/bdd";
 import type { ScopeInfo } from "./scopes.ts";
 import { encode } from "./encode/encode.ts";
 import { decode } from "./decode/decode.ts";
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { ScopeInfoBuilder } from "./builder/builder.ts";
 
 function assertCodec(scopesInfo: ScopeInfo): void {

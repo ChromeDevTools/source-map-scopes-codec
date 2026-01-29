@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import { assertGreater, assertLess, assertStrictEquals } from "jsr:@std/assert";
-import { describe, it } from "jsr:@std/testing/bdd";
+import { assertGreater, assertLess, assertStrictEquals } from "@std/assert";
+import { describe, it } from "@std/testing/bdd";
 import { comparePositions } from "./util.ts";
 
 describe("comparePositions", () => {
