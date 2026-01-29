@@ -15,7 +15,8 @@ import { assertEquals } from "@std/assert";
 import { ScopeInfoBuilder } from "./builder/builder.ts";
 
 function assertCodec(scopesInfo: ScopeInfo): void {
-  assertEquals(decode(encode(scopesInfo)), scopesInfo);
+  const { scopes, ranges } = decode(encode(scopesInfo));
+  assertEquals({ scopes, ranges }, scopesInfo);
 }
 
 describe("round trip", () => {
