@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import { expandGlob } from "jsr:@std/fs";
-import { format } from "jsr:@std/fmt/bytes";
+import { expandGlob } from "@std/fs";
+import { format } from "@std/fmt/bytes";
 
 import { decode, DecodeMode } from "../src/mod.ts";
 

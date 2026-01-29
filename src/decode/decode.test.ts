@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import { describe, it } from "jsr:@std/testing/bdd";
+import { describe, it } from "@std/testing/bdd";
 import { ScopeInfoBuilder } from "../builder/builder.ts";
 import { encode } from "../encode/encode.ts";
 import {
@@ -10,7 +10,7 @@ import {
   assertExists,
   assertStrictEquals,
   assertThrows,
-} from "jsr:@std/assert";
+} from "@std/assert";
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
 import { decode, DecodeMode } from "./decode.ts";
 import type { IndexSourceMapJson, SourceMapJson } from "../scopes.ts";

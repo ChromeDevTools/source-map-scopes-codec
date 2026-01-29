@@ -10,8 +10,8 @@
  * The given version must be a released version on JSR.
  */
 
-import { expandGlob } from "jsr:@std/fs";
-import { parseArgs } from "jsr:@std/cli/parse-args";
+import { expandGlob } from "@std/fs";
+import { parseArgs } from "@std/cli/parse-args";
 import { encode } from "../src/mod.ts";
 
 if (import.meta.main) {
