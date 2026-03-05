@@ -468,10 +468,10 @@ describe("decode", () => {
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS, 2).finishItem();
 
     // 1st sub-range binding for variable 0. from 1,0, value is "var1" (index 1)
-    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 0, 1, 1, 0)
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 0, 1, 0, 1)
       .finishItem();
     // 2nd sub-range binding for variable 0. from 2,0, value is "baz" (index 3)
-    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 0, 3, 1, 0)
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 0, 1, 0, 3)
       .finishItem();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 3, 0).finishItem();
     const map = createMap(encoder.encode(), ["var1", "bar", "baz"]);
