@@ -368,4 +368,20 @@ describe("ScopeInfoBuilder", () => {
       assertStrictEquals(info.ranges[0].originalScope, info.scopes[0]);
     });
   });
+
+  describe("build", () => {
+    it("resets accumulated state so a reused builder does not leak across builds", () => {
+      builder.startScope(0, 0, { key: 0 }).endScope(10, 0);
+      builder.startRange(0, 0, { scopeKey: 0 }).endRange(0, 10);
+      builder.build();
+
+      // Key 0 is not registered in this second build, so the range must not
+      // resolve to a scope carried over from the previous build.
+      const info = builder.startRange(0, 0, { scopeKey: 0 }).endRange(0, 10)
+        .build();
+
+      assertStrictEquals(info.ranges[0].originalScope, undefined);
+      assertStrictEquals(builder.lastScope(), null);
+    });
+  });
 });
