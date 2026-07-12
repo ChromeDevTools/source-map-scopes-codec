@@ -151,7 +151,10 @@ class Decoder {
   }
 
   decode(): DecodedScopeInfo {
-    const iter = new TokenIterator(this.#encodedScopes);
+    const iter = new TokenIterator(
+      this.#encodedScopes,
+      this.#mode === DecodeMode.STRICT,
+    );
 
     while (iter.hasNext()) {
       const tag = iter.nextUnsignedVLQ();

@@ -4,7 +4,7 @@
 
 import { describe, it } from "@std/testing/bdd";
 import { TokenIterator } from "./vlq.ts";
-import { assertFalse, assertStrictEquals } from "@std/assert";
+import { assertFalse, assertStrictEquals, assertThrows } from "@std/assert";
 
 describe("TokenIterator", () => {
   describe("nextUnsignedVLQ", () => {
@@ -34,6 +34,20 @@ describe("TokenIterator", () => {
 
       assertStrictEquals(iter.nextUnsignedVLQ(), 1);
       assertStrictEquals(iter.peek(), "C");
+    });
+
+    it("throws in strict mode when the VLQ is truncated", () => {
+      // 'h' has the continuation bit set, but the string ends right after it.
+      const iter = new TokenIterator("h", /* strict */ true);
+
+      assertThrows(() => iter.nextUnsignedVLQ());
+    });
+
+    it("throws in strict mode when a continuation runs into an invalid digit", () => {
+      // 'h' has the continuation bit set, 'æ' is outside the base64 alphabet.
+      const iter = new TokenIterator("hæC", /* strict */ true);
+
+      assertThrows(() => iter.nextUnsignedVLQ());
     });
   });
 

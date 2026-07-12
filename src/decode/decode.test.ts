@@ -144,6 +144,27 @@ describe("decode", () => {
     assertStrictEquals(info.scopes[0].kind, "");
   });
 
+  it("throws in strict mode when the scopes string ends mid-VLQ", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    // Replace the last digit with 'g', whose continuation bit is set. The
+    // string now ends while a VLQ still expects another digit.
+    const truncated = encoder.encode().slice(0, -1) + "g";
+    const map = createMap(truncated, []);
+
+    assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
+  });
+
+  it("tolerates a scopes string that ends mid-VLQ in lax mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    const truncated = encoder.encode().slice(0, -1) + "g";
+    const map = createMap(truncated, []);
+
+    // Lax mode must not throw; it decodes best-effort.
+    decode(map, { mode: DecodeMode.LAX });
+  });
+
   it("throws when encountering an ORIGINAL_SCOPE_END without start in strict mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 0, 0).finishItem();
