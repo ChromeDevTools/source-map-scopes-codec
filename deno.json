@@ -4,7 +4,7 @@
   "exports": "./src/mod.ts",
   "license": "BSD-3-Clause",
   "fmt": {
-    "exclude": ["README.md", "CONTRIBUTING.md"]
+    "exclude": ["README.md", "CONTRIBUTING.md", "CHANGELOG.md"]
   },
   "publish": {
     "include": [
