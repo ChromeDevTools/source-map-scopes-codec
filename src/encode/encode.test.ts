@@ -49,7 +49,9 @@ describe("encode", () => {
     const info = builder.addNullSource().addNullSource().addNullSource()
       .build();
 
-    assertEquals(encode(info).scopes, [null, null, null]);
+    const encoded = encode(info);
+    assertEquals(encoded.scopes, [null, null, null]);
+    assertEquals(encoded.ranges, []);
   });
 
   it("throws when a subsequent root scope precedes the previous root scope in the same source", () => {

@@ -19,6 +19,7 @@ import type {
   SourceMapJson,
   SubRangeBinding,
 } from "../scopes.ts";
+import { comparePositions } from "../util.ts";
 import { TokenIterator } from "../vlq.ts";
 
 /**
@@ -81,7 +82,7 @@ function decodeMap(
 
   return new Decoder(
     sourceMap.scopes ?? [],
-    sourceMap.ranges ?? "",
+    sourceMap.ranges ?? [],
     sourceMap.names,
     options,
   ).decode();
@@ -127,9 +128,10 @@ const DEFAULT_RANGE_STATE = {
 
 class Decoder {
   readonly #encodedScopes: (string | null)[];
-  readonly #encodedRanges: string;
+  readonly #encodedRanges: string[];
   readonly #names: string[];
   readonly #mode: DecodeMode;
+  readonly #generatedOffset: Position;
 
   #scopes: (OriginalScope[] | null)[] = [];
   #ranges: GeneratedRange[] = [];
@@ -153,7 +155,7 @@ class Decoder {
 
   constructor(
     scopes: (string | null)[],
-    ranges: string,
+    ranges: string[],
     names: string[],
     options: DecodeOptions,
   ) {
@@ -161,8 +163,7 @@ class Decoder {
     this.#encodedRanges = ranges;
     this.#names = names;
     this.#mode = options.mode;
-    this.#rangeState.line = options.generatedOffset.line;
-    this.#rangeState.column = options.generatedOffset.column;
+    this.#generatedOffset = options.generatedOffset;
   }
 
   decode(): DecodedScopeInfo {
@@ -175,7 +176,9 @@ class Decoder {
       this.#decodeScopes(encodedScope);
     }
 
-    this.#decodeRanges(this.#encodedRanges);
+    for (const encodedRange of this.#encodedRanges) {
+      this.#decodeRanges(encodedRange);
+    }
 
     const info = {
       scopes: this.#scopes,
@@ -270,6 +273,12 @@ class Decoder {
   }
 
   #decodeRanges(encodedRanges: string) {
+    Object.assign(this.#rangeState, DEFAULT_RANGE_STATE);
+    this.#rangeState.line = this.#generatedOffset.line;
+    this.#rangeState.column = this.#generatedOffset.column;
+    const prevLastRange = this.#ranges.at(-1);
+    const prevRangesLength = this.#ranges.length;
+
     const iter = new TokenIterator(
       encodedRanges,
       this.#mode === DecodeMode.STRICT,
@@ -368,6 +377,21 @@ class Decoder {
     if (this.#rangeStack.length > 0) {
       this.#throwInStrictMode(
         "Encountered GENERATED_RANGE_START without matching END!",
+      );
+      this.#rangeStack.length = 0;
+    }
+
+    if (
+      prevLastRange &&
+      this.#ranges.length > prevRangesLength &&
+      comparePositions(
+          this.#ranges[prevRangesLength].start,
+          prevLastRange.end,
+        ) <
+        0
+    ) {
+      this.#throwInStrictMode(
+        "Range segment starts before the previous segment ended!",
       );
     }
   }
