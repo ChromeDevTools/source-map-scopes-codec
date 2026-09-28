@@ -50,12 +50,19 @@ class ItemEncoder {
   }
 }
 
-function createMap(scopes: string, names: string[]): SourceMapJson {
+function createMap(
+  { scopes, ranges, names = [] }: {
+    scopes?: (string | null)[];
+    ranges?: string;
+    names?: string[];
+  },
+): SourceMapJson {
   return {
     version: 3,
     mappings: "",
-    sources: [],
+    sources: new Array(scopes?.length ?? 0).fill(null),
     scopes,
+    ranges,
     names,
   };
 }
@@ -69,9 +76,9 @@ describe("decode", () => {
       .build();
     const map = encode(info);
 
-    assertExists(map.scopes);
+    assertExists(map.scopes?.[0]);
 
-    const parts = map.scopes.split(",");
+    const parts = map.scopes[0].split(",");
     const items = [
       encodeUnsigned(42) + encodeUnsigned(5),
       parts[0],
@@ -79,7 +86,7 @@ describe("decode", () => {
       parts[1],
       encodeUnsigned(256),
     ];
-    map.scopes = items.join(",");
+    map.scopes[0] = items.join(",");
     assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
   });
 
@@ -91,12 +98,12 @@ describe("decode", () => {
       .build();
     const map = encode(info);
 
-    assertExists(map.scopes);
+    assertExists(map.scopes?.[0]);
 
-    const parts = map.scopes.split(",");
+    const parts = map.scopes[0].split(",");
     parts[0] += encodeUnsigned(42);
     parts[0] += encodeSigned(-16);
-    map.scopes = parts.join(",");
+    map.scopes[0] = parts.join(",");
 
     assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
   });
@@ -109,12 +116,12 @@ describe("decode", () => {
       .build();
     const map = encode(info);
 
-    assertExists(map.scopes);
+    assertExists(map.scopes?.[0]);
 
-    const parts = map.scopes.split(",");
+    const parts = map.scopes[0].split(",");
     parts[1] += encodeUnsigned(42);
     parts[1] += encodeSigned(-16);
-    map.scopes = parts.join(",");
+    map.scopes[0] = parts.join(",");
 
     assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
   });
@@ -128,7 +135,7 @@ describe("decode", () => {
       0,
     ).addSignedVLQs(2)
       .finishItem().addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 5, 0).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ scopes: [encoder.encode()] });
 
     const info = decode(map);
 
@@ -145,7 +152,7 @@ describe("decode", () => {
       0,
     ).addSignedVLQs(2)
       .finishItem().addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 5, 0).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ scopes: [encoder.encode()] });
 
     const info = decode(map);
 
@@ -159,7 +166,7 @@ describe("decode", () => {
     // Replace the last digit with 'g', whose continuation bit is set. The
     // string now ends while a VLQ still expects another digit.
     const truncated = encoder.encode().slice(0, -1) + "g";
-    const map = createMap(truncated, []);
+    const map = createMap({ scopes: [truncated] });
 
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
@@ -168,7 +175,7 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
     const truncated = encoder.encode().slice(0, -1) + "g";
-    const map = createMap(truncated, []);
+    const map = createMap({ scopes: [truncated] });
 
     // Lax mode must not throw; it decodes best-effort.
     decode(map, { mode: DecodeMode.LAX });
@@ -177,7 +184,7 @@ describe("decode", () => {
   it("throws when encountering an ORIGINAL_SCOPE_END without start in strict mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 0, 0).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ scopes: [encoder.encode()] });
 
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
@@ -185,17 +192,17 @@ describe("decode", () => {
   it("ignores miss-matched ORIGINAL_SCOPE_END items", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 0, 0).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ scopes: [encoder.encode()] });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
-    assertEquals(info.scopes, []);
+    assertEquals(info.scopes, [[]]);
   });
 
   it("throws in strict mode when there are 'open' scopes left at the end", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ scopes: [encoder.encode()] });
 
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
@@ -203,18 +210,18 @@ describe("decode", () => {
   it("ignores 'open' scopes left at the end in lax mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ scopes: [encoder.encode()] });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
-    assertEquals(info.scopes, []);
+    assertEquals(info.scopes, [[]]);
   });
 
   it("throws in strict mode when encountering an GENERATED_RANGE_END without START", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END);
     encoder.addSignedVLQs(42).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ ranges: encoder.encode() });
 
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
@@ -223,7 +230,7 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END);
     encoder.addSignedVLQs(42).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ ranges: encoder.encode() });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
@@ -234,7 +241,7 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0);
     encoder.addSignedVLQs(42).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ ranges: encoder.encode() });
 
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
@@ -243,7 +250,7 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0);
     encoder.addSignedVLQs(42).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ ranges: encoder.encode() });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
@@ -254,7 +261,10 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
     encoder.addSignedVLQs(0, 1).finishItem();
-    const map = createMap(encoder.encode(), ["foo", "bar"]);
+    const map = createMap({
+      scopes: [encoder.encode()],
+      names: ["foo", "bar"],
+    });
 
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
@@ -263,18 +273,21 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
     encoder.addSignedVLQs(0, 1).finishItem();
-    const map = createMap(encoder.encode(), ["foo", "bar"]);
+    const map = createMap({
+      scopes: [encoder.encode()],
+      names: ["foo", "bar"],
+    });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
-    assertEquals(info.scopes, []);
+    assertEquals(info.scopes, [[]]);
   });
 
   it("throws for free GENERATED_RANGE_BINDINGS items in strict mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS);
     encoder.addSignedVLQs(0, -1).finishItem();
-    const map = createMap(encoder.encode(), ["foo"]);
+    const map = createMap({ ranges: encoder.encode(), names: ["foo"] });
 
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
@@ -283,7 +296,7 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS);
     encoder.addSignedVLQs(0, -1).finishItem();
-    const map = createMap(encoder.encode(), ["foo"]);
+    const map = createMap({ ranges: encoder.encode(), names: ["foo"] });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
@@ -296,7 +309,7 @@ describe("decode", () => {
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
     encoder.addSignedVLQs(0, 2).finishItem(); // The '2' is illegal as we only have 1 name.
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
-    const map = createMap(encoder.encode(), ["foo"]);
+    const map = createMap({ scopes: [encoder.encode()], names: ["foo"] });
 
     assertThrows(
       () => decode(map, { mode: DecodeMode.STRICT }),
@@ -311,7 +324,7 @@ describe("decode", () => {
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
     encoder.addSignedVLQs(0, -1).finishItem(); // The '-1' is illegal as we only have 1 name.
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
-    const map = createMap(encoder.encode(), ["foo"]);
+    const map = createMap({ scopes: [encoder.encode()], names: ["foo"] });
 
     assertThrows(
       () => decode(map, { mode: DecodeMode.STRICT }),
@@ -326,7 +339,7 @@ describe("decode", () => {
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
     encoder.addSignedVLQs(0, 2).finishItem(); // The '2' is illegal as we only have 1 name.
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
-    const map = createMap(encoder.encode(), ["foo"]);
+    const map = createMap({ scopes: [encoder.encode()], names: ["foo"] });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
@@ -339,7 +352,7 @@ describe("decode", () => {
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES);
     encoder.addSignedVLQs(0, -1).finishItem(); // The '-1' is illegal as we only have 1 name.
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
-    const map = createMap(encoder.encode(), ["foo"]);
+    const map = createMap({ scopes: [encoder.encode()], names: ["foo"] });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
@@ -355,7 +368,7 @@ describe("decode", () => {
       0,
     ).addSignedVLQs(1).finishItem(); // The last '1' is the illegal name index.
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
-    const map = createMap(encoder.encode(), ["foo"]);
+    const map = createMap({ scopes: [encoder.encode()], names: ["foo"] });
 
     assertThrows(
       () => decode(map, { mode: DecodeMode.STRICT }),
@@ -373,7 +386,7 @@ describe("decode", () => {
       0,
     ).addSignedVLQs(1).finishItem(); // The last '1' is the illegal name index.
     encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
-    const map = createMap(encoder.encode(), ["foo"]);
+    const map = createMap({ scopes: [encoder.encode()], names: ["foo"] });
 
     assertThrows(
       () => decode(map, { mode: DecodeMode.STRICT }),
@@ -388,7 +401,7 @@ describe("decode", () => {
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS).addSignedVLQs(2)
       .finishItem();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
-    const map = createMap(encoder.encode(), ["foo"]);
+    const map = createMap({ ranges: encoder.encode(), names: ["foo"] });
 
     assertThrows(
       () => decode(map, { mode: DecodeMode.STRICT }),
@@ -403,7 +416,7 @@ describe("decode", () => {
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS).addSignedVLQs(2)
       .finishItem();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
-    const map = createMap(encoder.encode(), ["foo"]);
+    const map = createMap({ ranges: encoder.encode(), names: ["foo"] });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
@@ -415,12 +428,12 @@ describe("decode", () => {
       .build();
     const map = encode(info);
 
-    assertExists(map.scopes);
+    assertExists(map.ranges);
 
-    const parts = map.scopes.split(",");
+    const parts = map.ranges.split(",");
     parts[0] += encodeUnsigned(42);
     parts[0] += encodeSigned(-16);
-    map.scopes = parts.join(",");
+    map.ranges = parts.join(",");
 
     assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
   });
@@ -434,12 +447,12 @@ describe("decode", () => {
     }).endRange(10, 0).build();
     const map = encode(info);
 
-    assertExists(map.scopes);
+    assertExists(map.ranges);
 
-    const parts = map.scopes.split(",");
-    parts[3] += encodeUnsigned(42);
-    parts[3] += encodeSigned(-16);
-    map.scopes = parts.join(",");
+    const parts = map.ranges.split(",");
+    parts[1] += encodeUnsigned(42);
+    parts[1] += encodeSigned(-16);
+    map.ranges = parts.join(",");
 
     assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
   });
@@ -452,7 +465,7 @@ describe("decode", () => {
       0,
     ).addSignedVLQs(1).addUnsignedVLQs(0).finishItem();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ ranges: encoder.encode() });
 
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
@@ -465,7 +478,7 @@ describe("decode", () => {
       0,
     ).addSignedVLQs(1).addUnsignedVLQs(0).finishItem();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ ranges: encoder.encode() });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
@@ -474,31 +487,43 @@ describe("decode", () => {
   });
 
   it("throws if GENERATED_RANGE_START.definition is not a valid original scope in strict mode", () => {
-    const encoder = new ItemEncoder();
-    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
-    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
-    encoder.addUnsignedVLQs(
+    const scopeEncoder = new ItemEncoder();
+    scopeEncoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0)
+      .finishItem();
+    scopeEncoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
+
+    const rangeEncoder = new ItemEncoder();
+    rangeEncoder.addUnsignedVLQs(
       Tag.GENERATED_RANGE_START,
       GeneratedRangeFlags.HAS_DEFINITION,
       0,
     ).addSignedVLQs(0, 1).finishItem();
-    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
-    const map = createMap(encoder.encode(), []);
+    rangeEncoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
+    const map = createMap({
+      scopes: [scopeEncoder.encode()],
+      ranges: rangeEncoder.encode(),
+    });
 
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
 
   it("ignores if GENERATED_RANGE_START.definition is not a valid original scope in lax mode", () => {
-    const encoder = new ItemEncoder();
-    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
-    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
-    encoder.addUnsignedVLQs(
+    const scopeEncoder = new ItemEncoder();
+    scopeEncoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0)
+      .finishItem();
+    scopeEncoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
+
+    const rangeEncoder = new ItemEncoder();
+    rangeEncoder.addUnsignedVLQs(
       Tag.GENERATED_RANGE_START,
       GeneratedRangeFlags.HAS_DEFINITION,
       0,
     ).addSignedVLQs(0, 1).finishItem();
-    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
-    const map = createMap(encoder.encode(), []);
+    rangeEncoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
+    const map = createMap({
+      scopes: [scopeEncoder.encode()],
+      ranges: rangeEncoder.encode(),
+    });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
@@ -538,7 +563,7 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_CALL_SITE);
     encoder.addSignedVLQs(0, 0, 0).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ ranges: encoder.encode() });
 
     assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
   });
@@ -547,7 +572,7 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_CALL_SITE);
     encoder.addSignedVLQs(0, 0, 0).finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ ranges: encoder.encode() });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
@@ -564,7 +589,7 @@ describe("decode", () => {
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 0, 1, 2, 0)
       .finishItem();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2, 0).finishItem();
-    const map = createMap(encoder.encode(), ["foo"]);
+    const map = createMap({ ranges: encoder.encode(), names: ["foo"] });
 
     assertThrows(
       () => decode(map, { mode: DecodeMode.STRICT }),
@@ -574,29 +599,47 @@ describe("decode", () => {
   });
 
   it("ignores multiple GENERATED_RANGE_SUBRANGE_BINDING items for the same variable in lax mode", () => {
-    const encoder = new ItemEncoder();
+    const scopeEncoder = new ItemEncoder();
     // Original scope with 1 variable.
-    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
-    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES, 0).finishItem();
-    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
+    scopeEncoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0)
+      .finishItem();
+    scopeEncoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_VARIABLES, 0).finishItem();
+    scopeEncoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
 
+    const rangeEncoder = new ItemEncoder();
     // Generated range from 0,0 to 3,0, referencing the original scope.
-    encoder.addUnsignedVLQs(
+    rangeEncoder.addUnsignedVLQs(
       Tag.GENERATED_RANGE_START,
       GeneratedRangeFlags.HAS_DEFINITION,
       0,
     ).addSignedVLQs(0, 0).finishItem();
     // Initial binding for the variable is "bar" (index 2).
-    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS, 2).finishItem();
+    rangeEncoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS, 2).finishItem();
 
     // 1st sub-range binding for variable 0. from 1,0, value is "var1" (index 1)
-    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 0, 1, 0, 1)
+    rangeEncoder.addUnsignedVLQs(
+      Tag.GENERATED_RANGE_SUBRANGE_BINDING,
+      0,
+      1,
+      0,
+      1,
+    )
       .finishItem();
     // 2nd sub-range binding for variable 0. from 2,0, value is "baz" (index 3)
-    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 0, 1, 0, 3)
+    rangeEncoder.addUnsignedVLQs(
+      Tag.GENERATED_RANGE_SUBRANGE_BINDING,
+      0,
+      1,
+      0,
+      3,
+    )
       .finishItem();
-    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 3, 0).finishItem();
-    const map = createMap(encoder.encode(), ["var1", "bar", "baz"]);
+    rangeEncoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 3, 0).finishItem();
+    const map = createMap({
+      scopes: [scopeEncoder.encode()],
+      ranges: rangeEncoder.encode(),
+      names: ["var1", "bar", "baz"],
+    });
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
@@ -686,10 +729,15 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.VENDOR_EXTENSION, 0);
     encoder.finishItem();
-    const map = createMap(encoder.encode(), ["x_ext_item"]);
+    const ext = encoder.encode();
+    const map = createMap({
+      scopes: [ext],
+      ranges: ext,
+      names: ["x_ext_item"],
+    });
 
     assertEquals(decode(map, { mode: DecodeMode.STRICT }), {
-      scopes: [],
+      scopes: [[]],
       ranges: [],
       hasVariableAndBindingInfo: false,
     });
@@ -699,7 +747,7 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(42, 1, 2, 3);
     encoder.finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ scopes: [encoder.encode()] });
 
     assertThrows(
       () => decode(map, { mode: DecodeMode.STRICT }),
@@ -712,7 +760,59 @@ describe("decode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(42, 1, 2, 3);
     encoder.finishItem();
-    const map = createMap(encoder.encode(), []);
+    const map = createMap({ scopes: [encoder.encode()] });
+
+    assertEquals(decode(map), {
+      scopes: [[]],
+      ranges: [],
+      hasVariableAndBindingInfo: false,
+    });
+  });
+
+  it("throws for range item tags in scopes in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 10).finishItem();
+    const map = createMap({ scopes: [encoder.encode()] });
+
+    assertThrows(
+      () => decode(map, { mode: DecodeMode.STRICT }),
+      Error,
+      `Encountered illegal item tag ${Tag.GENERATED_RANGE_START}`,
+    );
+  });
+
+  it("ignores range item tags in scopes in lax mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 10).finishItem();
+    const map = createMap({ scopes: [encoder.encode()] });
+
+    assertEquals(decode(map), {
+      scopes: [[]],
+      ranges: [],
+      hasVariableAndBindingInfo: false,
+    });
+  });
+
+  it("throws for scope item tags in ranges in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 10, 0).finishItem();
+    const map = createMap({ ranges: encoder.encode() });
+
+    assertThrows(
+      () => decode(map, { mode: DecodeMode.STRICT }),
+      Error,
+      `Encountered illegal item tag ${Tag.ORIGINAL_SCOPE_START}`,
+    );
+  });
+
+  it("ignores scope item tags in ranges in lax mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 10, 0).finishItem();
+    const map = createMap({ ranges: encoder.encode() });
 
     assertEquals(decode(map), {
       scopes: [],

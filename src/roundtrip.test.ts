@@ -38,9 +38,21 @@ describe("round trip", () => {
     assertCodec(builder.build());
   });
 
-  it("handles two simple top-level OriginalScopes", () => {
+  it("handles two simple top-level OriginalScopes across sources", () => {
     builder.startSource().startScope(0, 0).endScope(10, 1).endSource();
     builder.startSource().startScope(0, 0).endScope(15, 1).endSource();
+
+    assertCodec(builder.build());
+  });
+
+  it("handles multiple root OriginalScopes in the same source", () => {
+    builder.startSource()
+      .startScope(0, 0, { name: "first", key: "first" }).endScope(5, 10)
+      .startScope(5, 15, { name: "second", key: "second" }).endScope(10, 0)
+      .startScope(12, 4, { name: "third", key: "third" }).endScope(20, 0)
+      .endSource()
+      .startRange(0, 0, { scopeKey: "third" }).endRange(0, 10)
+      .startRange(0, 10, { scopeKey: "first" }).endRange(0, 20);
 
     assertCodec(builder.build());
   });
