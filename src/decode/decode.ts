@@ -116,6 +116,7 @@ const DEFAULT_SCOPE_STATE = {
 const DEFAULT_RANGE_STATE = {
   line: 0,
   column: 0,
+  defSourceIdx: 0,
   defScopeIdx: 0,
 };
 
@@ -133,7 +134,8 @@ class Decoder {
   readonly #scopeStack: OriginalScope[] = [];
   readonly #rangeStack: GeneratedRange[] = [];
 
-  #flatOriginalScopes: OriginalScope[] = [];
+  #flatOriginalScopes: (OriginalScope[] | null)[] = [];
+  #currentFlatScopes: OriginalScope[] = [];
   #subRangeBindingsForRange = new Map<
     GeneratedRange,
     Map<number, [number, number, number][]>
@@ -161,6 +163,7 @@ class Decoder {
       switch (tag) {
         case Tag.EMPTY: {
           this.#scopes.push(null);
+          this.#flatOriginalScopes.push(null);
           break;
         }
         case Tag.ORIGINAL_SCOPE_START: {
@@ -205,15 +208,20 @@ class Decoder {
             : undefined;
           const column = iter.nextUnsignedVLQ();
 
-          const definitionIdx = flags & GeneratedRangeFlags.HAS_DEFINITION
-            ? iter.nextSignedVLQ()
-            : undefined;
+          let definition: { sourceIdx: number; scopeIdx: number } | undefined;
+          if (flags & GeneratedRangeFlags.HAS_DEFINITION) {
+            const sourceIdx = iter.nextSignedVLQ();
+            const scopeIdx = sourceIdx === 0
+              ? iter.nextSignedVLQ()
+              : iter.nextUnsignedVLQ();
+            definition = { sourceIdx, scopeIdx };
+          }
 
           this.#handleGeneratedRangeStartItem({
             flags,
             line,
             column,
-            definitionIdx,
+            definition,
           });
           break;
         }
@@ -301,6 +309,7 @@ class Decoder {
     this.#scopes = [];
     this.#ranges = [];
     this.#flatOriginalScopes = [];
+    this.#currentFlatScopes = [];
     this.#seenOriginalScopeVariables = false;
     this.#seenGeneratedRangeBindings = false;
 
@@ -340,7 +349,7 @@ class Decoder {
     );
 
     this.#scopeStack.push(scope);
-    this.#flatOriginalScopes.push(scope);
+    this.#currentFlatScopes.push(scope);
   }
 
   #handleOriginalScopeVariablesItem(variableIdxs: number[]) {
@@ -385,6 +394,8 @@ class Decoder {
       parent.children.push(scope);
     } else {
       this.#scopes.push([scope]);
+      this.#flatOriginalScopes.push(this.#currentFlatScopes);
+      this.#currentFlatScopes = [];
       this.#scopeState.line = 0;
       this.#scopeState.column = 0;
     }
@@ -415,16 +426,20 @@ class Decoder {
       children: [],
     };
 
-    if (item.definitionIdx !== undefined) {
-      this.#rangeState.defScopeIdx += item.definitionIdx;
-      if (
-        this.#rangeState.defScopeIdx < 0 ||
-        this.#rangeState.defScopeIdx >= this.#flatOriginalScopes.length
-      ) {
+    if (item.definition !== undefined) {
+      this.#rangeState.defSourceIdx += item.definition.sourceIdx;
+      if (item.definition.sourceIdx !== 0) {
+        this.#rangeState.defScopeIdx = 0;
+      }
+      this.#rangeState.defScopeIdx += item.definition.scopeIdx;
+
+      const originalScope = this
+        .#flatOriginalScopes[this.#rangeState.defSourceIdx]
+        ?.[this.#rangeState.defScopeIdx];
+      if (!originalScope) {
         this.#throwInStrictMode("Invalid definition scope index");
       } else {
-        range.originalScope =
-          this.#flatOriginalScopes[this.#rangeState.defScopeIdx];
+        range.originalScope = originalScope;
       }
     }
 

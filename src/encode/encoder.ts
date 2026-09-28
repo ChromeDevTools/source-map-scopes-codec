@@ -22,6 +22,7 @@ const DEFAULT_SCOPE_STATE = {
 const DEFAULT_RANGE_STATE = {
   line: 0,
   column: 0,
+  defSourceIdx: 0,
   defScopeIdx: 0,
 };
 
@@ -38,7 +39,11 @@ export class Encoder {
   #encodedItems: string[] = [];
   #currentItem: string = "";
 
-  #scopeToCount = new Map<OriginalScope, number>();
+  #scopeToLocation = new Map<
+    OriginalScope,
+    { sourceIdx: number; scopeIdx: number }
+  >();
+  #currentSourceIdx = 0;
   #scopeCounter = 0;
 
   constructor(info: ScopeInfo, names: string[]) {
@@ -52,11 +57,13 @@ export class Encoder {
 
   encode(): string {
     this.#encodedItems = [];
-    this.#info.scopes.forEach((scopes) => {
+    this.#info.scopes.forEach((scopes, sourceIdx) => {
       if (scopes === null) {
         this.#encodedItems.push(EncodedTag.EMPTY);
         return;
       }
+      this.#currentSourceIdx = sourceIdx;
+      this.#scopeCounter = 0;
       this.#scopeState.line = 0;
       this.#scopeState.column = 0;
       scopes.forEach((scope) => this.#encodeOriginalScope(scope));
@@ -111,7 +118,10 @@ export class Encoder {
     if (encodedKind !== undefined) this.#encodeSigned(encodedKind);
     this.#finishItem();
 
-    this.#scopeToCount.set(scope, this.#scopeCounter++);
+    this.#scopeToLocation.set(scope, {
+      sourceIdx: this.#currentSourceIdx,
+      scopeIdx: this.#scopeCounter++,
+    });
   }
 
   #encodeOriginalScopeVariables(scope: OriginalScope) {
@@ -168,17 +178,23 @@ export class Encoder {
     this.#rangeState.line = line;
     this.#rangeState.column = column;
 
-    let encodedDefinition;
+    let encodedDefSourceIdx: number | undefined;
+    let encodedDefScopeIdx: number | undefined;
     if (range.originalScope) {
-      const definitionIdx = this.#scopeToCount.get(range.originalScope);
-      if (definitionIdx === undefined) {
+      const location = this.#scopeToLocation.get(range.originalScope);
+      if (location === undefined) {
         throw new Error("Unknown OriginalScope for definition!");
       }
 
       flags |= GeneratedRangeFlags.HAS_DEFINITION;
 
-      encodedDefinition = definitionIdx - this.#rangeState.defScopeIdx;
-      this.#rangeState.defScopeIdx = definitionIdx;
+      encodedDefSourceIdx = location.sourceIdx - this.#rangeState.defSourceIdx;
+      this.#rangeState.defSourceIdx = location.sourceIdx;
+
+      encodedDefScopeIdx = encodedDefSourceIdx === 0
+        ? location.scopeIdx - this.#rangeState.defScopeIdx
+        : location.scopeIdx;
+      this.#rangeState.defScopeIdx = location.scopeIdx;
     }
 
     if (range.isStackFrame) flags |= GeneratedRangeFlags.IS_STACK_FRAME;
@@ -187,7 +203,16 @@ export class Encoder {
     this.#encodeTag(EncodedTag.GENERATED_RANGE_START).#encodeUnsigned(flags);
     if (encodedLine > 0) this.#encodeUnsigned(encodedLine);
     this.#encodeUnsigned(encodedColumn);
-    if (encodedDefinition !== undefined) this.#encodeSigned(encodedDefinition);
+    if (
+      encodedDefSourceIdx !== undefined && encodedDefScopeIdx !== undefined
+    ) {
+      this.#encodeSigned(encodedDefSourceIdx);
+      if (encodedDefSourceIdx === 0) {
+        this.#encodeSigned(encodedDefScopeIdx);
+      } else {
+        this.#encodeUnsigned(encodedDefScopeIdx);
+      }
+    }
     this.#finishItem();
   }
 
