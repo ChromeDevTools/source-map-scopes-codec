@@ -55,24 +55,28 @@ export class Encoder {
     }
   }
 
-  encode(): string {
-    this.#encodedItems = [];
-    this.#info.scopes.forEach((scopes, sourceIdx) => {
+  encode(): { scopes: (string | null)[]; ranges: string } {
+    const encodedScopes = this.#info.scopes.map((scopes, sourceIdx) => {
       if (scopes === null) {
-        this.#encodedItems.push(EncodedTag.EMPTY);
-        return;
+        return null;
       }
+      this.#encodedItems = [];
       this.#currentSourceIdx = sourceIdx;
       this.#scopeCounter = 0;
-      this.#scopeState.line = 0;
-      this.#scopeState.column = 0;
+      Object.assign(this.#scopeState, DEFAULT_SCOPE_STATE);
       scopes.forEach((scope) => this.#encodeOriginalScope(scope));
+      return this.#encodedItems.join(",");
     });
+
+    this.#encodedItems = [];
     this.#info.ranges.forEach((range) => {
       this.#encodeGeneratedRange(range);
     });
 
-    return this.#encodedItems.join(",");
+    return {
+      scopes: encodedScopes,
+      ranges: this.#encodedItems.join(","),
+    };
   }
 
   #encodeOriginalScope(scope: OriginalScope): void {

@@ -4,7 +4,7 @@
 
 import { beforeEach, describe, it } from "@std/testing/bdd";
 import type { ScopeInfo, SourceMapJson } from "../scopes.ts";
-import { assertStrictEquals, assertThrows } from "@std/assert";
+import { assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { encode } from "./encode.ts";
 import { ScopeInfoBuilder } from "../builder/builder.ts";
 
@@ -49,7 +49,16 @@ describe("encode", () => {
     const info = builder.addNullSource().addNullSource().addNullSource()
       .build();
 
-    assertStrictEquals(encode(info).scopes, "A,A,A");
+    assertEquals(encode(info).scopes, [null, null, null]);
+  });
+
+  it("throws when a subsequent root scope precedes the previous root scope in the same source", () => {
+    const info = builder.startSource()
+      .startScope(10, 0).endScope(20, 0)
+      .startScope(5, 0).endScope(15, 0)
+      .endSource().build();
+
+    assertThrows(() => encode(info));
   });
 
   it("throws when a child scope' start is not nested properly within its parent", () => {
