@@ -55,7 +55,7 @@ export class Encoder {
     }
   }
 
-  encode(): { scopes: (string | null)[]; ranges: string } {
+  encode(): { scopes: (string | null)[]; ranges: string[] } {
     const encodedScopes = this.#info.scopes.map((scopes, sourceIdx) => {
       if (scopes === null) {
         return null;
@@ -75,7 +75,9 @@ export class Encoder {
 
     return {
       scopes: encodedScopes,
-      ranges: this.#encodedItems.join(","),
+      ranges: this.#encodedItems.length > 0
+        ? [this.#encodedItems.join(",")]
+        : [],
     };
   }
 

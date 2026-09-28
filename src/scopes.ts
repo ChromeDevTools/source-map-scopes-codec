@@ -192,5 +192,5 @@ export interface SourceMapJson {
   mappings: string;
   names?: string[];
   scopes?: (string | null)[];
-  ranges?: string;
+  ranges?: string[];
 }

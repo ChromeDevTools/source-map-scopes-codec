@@ -53,7 +53,7 @@ class ItemEncoder {
 function createMap(
   { scopes, ranges, names = [] }: {
     scopes?: (string | null)[];
-    ranges?: string;
+    ranges?: string | string[];
     names?: string[];
   },
 ): SourceMapJson {
@@ -62,7 +62,7 @@ function createMap(
     mappings: "",
     sources: new Array(scopes?.length ?? 0).fill(null),
     scopes,
-    ranges,
+    ranges: typeof ranges === "string" ? [ranges] : ranges,
     names,
   };
 }
@@ -428,12 +428,12 @@ describe("decode", () => {
       .build();
     const map = encode(info);
 
-    assertExists(map.ranges);
+    assertExists(map.ranges?.[0]);
 
-    const parts = map.ranges.split(",");
+    const parts = map.ranges[0].split(",");
     parts[0] += encodeUnsigned(42);
     parts[0] += encodeSigned(-16);
-    map.ranges = parts.join(",");
+    map.ranges[0] = parts.join(",");
 
     assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
   });
@@ -447,12 +447,12 @@ describe("decode", () => {
     }).endRange(10, 0).build();
     const map = encode(info);
 
-    assertExists(map.ranges);
+    assertExists(map.ranges?.[0]);
 
-    const parts = map.ranges.split(",");
+    const parts = map.ranges[0].split(",");
     parts[1] += encodeUnsigned(42);
     parts[1] += encodeSigned(-16);
-    map.ranges = parts.join(",");
+    map.ranges[0] = parts.join(",");
 
     assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
   });
@@ -819,6 +819,80 @@ describe("decode", () => {
       ranges: [],
       hasVariableAndBindingInfo: false,
     });
+  });
+
+  it("decodes multiple range segments and resets state per segment", () => {
+    const map1 = encode(
+      new ScopeInfoBuilder()
+        .addNullSource()
+        .startSource()
+        .startScope(0, 0, { key: "s1" })
+        .endScope(10, 0)
+        .endSource()
+        .startRange(0, 5, { scopeKey: "s1" })
+        .endRange(2, 10)
+        .build(),
+    );
+    const map2 = encode(
+      new ScopeInfoBuilder()
+        .addNullSource()
+        .startSource()
+        .startScope(0, 0, { key: "s1" })
+        .endScope(10, 0)
+        .endSource()
+        .startRange(2, 10, { scopeKey: "s1" })
+        .endRange(4, 20)
+        .build(),
+    );
+
+    const combinedMap: SourceMapJson = {
+      version: 3,
+      mappings: "",
+      sources: [null, null],
+      scopes: map1.scopes,
+      ranges: [...(map1.ranges ?? []), ...(map2.ranges ?? [])],
+      names: map1.names,
+    };
+
+    const info = decode(combinedMap, { mode: DecodeMode.STRICT });
+
+    assertEquals(info.ranges.length, 2);
+    assertEquals(info.ranges[0].start, { line: 0, column: 5 });
+    assertEquals(info.ranges[0].end, { line: 2, column: 10 });
+    assertStrictEquals(info.ranges[0].originalScope, info.scopes[1]?.[0]);
+    assertEquals(info.ranges[1].start, { line: 2, column: 10 });
+    assertEquals(info.ranges[1].end, { line: 4, column: 20 });
+    assertStrictEquals(info.ranges[1].originalScope, info.scopes[1]?.[0]);
+  });
+
+  it("throws in strict mode when a range segment starts before the previous segment ended", () => {
+    const seg1 = encode(
+      new ScopeInfoBuilder().startRange(0, 10).endRange(2, 20).build(),
+    ).ranges![0];
+    const seg2 = encode(
+      new ScopeInfoBuilder().startRange(2, 15).endRange(3, 0).build(),
+    ).ranges![0];
+    const map = createMap({ ranges: [seg1, seg2] });
+
+    assertThrows(
+      () => decode(map, { mode: DecodeMode.STRICT }),
+      Error,
+      "Range segment starts before the previous segment ended!",
+    );
+  });
+
+  it("tolerates overlapping range segments in lax mode", () => {
+    const seg1 = encode(
+      new ScopeInfoBuilder().startRange(0, 10).endRange(2, 20).build(),
+    ).ranges![0];
+    const seg2 = encode(
+      new ScopeInfoBuilder().startRange(2, 15).endRange(3, 0).build(),
+    ).ranges![0];
+    const map = createMap({ ranges: [seg1, seg2] });
+
+    const info = decode(map, { mode: DecodeMode.LAX });
+
+    assertEquals(info.ranges.length, 2);
   });
 
   describe("hasVariableAndBindingInfo", () => {
