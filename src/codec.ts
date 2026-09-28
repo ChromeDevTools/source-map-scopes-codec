@@ -53,5 +53,8 @@ export interface GeneratedRangeStartItem {
   flags: number;
   line?: number;
   column: number;
-  definitionIdx?: number;
+  definition?: {
+    sourceIdx: number;
+    scopeIdx: number;
+  };
 }

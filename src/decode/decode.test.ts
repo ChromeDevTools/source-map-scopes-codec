@@ -410,14 +410,78 @@ describe("decode", () => {
     assertEquals(info.ranges[0]?.values, [""]);
   });
 
-  it("throws if GENERATED_RANGE_START.definition is not a valid original scope in strict mode", () => {
+  it("handles trailing VLQs in GENERATED_RANGE_START items", () => {
+    const info = new ScopeInfoBuilder().startRange(0, 0).endRange(10, 0)
+      .build();
+    const map = encode(info);
+
+    assertExists(map.scopes);
+
+    const parts = map.scopes.split(",");
+    parts[0] += encodeUnsigned(42);
+    parts[0] += encodeSigned(-16);
+    map.scopes = parts.join(",");
+
+    assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
+  });
+
+  it("handles trailing VLQs in GENERATED_RANGE_CALL_SITE items", () => {
+    const info = new ScopeInfoBuilder().startSource().startScope(0, 0, {
+      key: "fn",
+    }).endScope(10, 0).endSource().startRange(0, 0, {
+      scopeKey: "fn",
+      callSite: { sourceIndex: 0, line: 2, column: 4 },
+    }).endRange(10, 0).build();
+    const map = encode(info);
+
+    assertExists(map.scopes);
+
+    const parts = map.scopes.split(",");
+    parts[3] += encodeUnsigned(42);
+    parts[3] += encodeSigned(-16);
+    map.scopes = parts.join(",");
+
+    assertEquals(decode(map), { ...info, hasVariableAndBindingInfo: false });
+  });
+
+  it("throws if GENERATED_RANGE_START.definition has an invalid source index in strict mode", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(
       Tag.GENERATED_RANGE_START,
       GeneratedRangeFlags.HAS_DEFINITION,
       0,
-      1,
-    ).finishItem();
+    ).addSignedVLQs(1).addUnsignedVLQs(0).finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    assertThrows(() => decode(map, { mode: DecodeMode.STRICT }));
+  });
+
+  it("ignores if GENERATED_RANGE_START.definition has an invalid source index in lax mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(
+      Tag.GENERATED_RANGE_START,
+      GeneratedRangeFlags.HAS_DEFINITION,
+      0,
+    ).addSignedVLQs(1).addUnsignedVLQs(0).finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
+    const map = createMap(encoder.encode(), []);
+
+    const info = decode(map, { mode: DecodeMode.LAX });
+
+    assertExists(info.ranges[0]);
+    assertStrictEquals(info.ranges[0].originalScope, undefined);
+  });
+
+  it("throws if GENERATED_RANGE_START.definition is not a valid original scope in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
+    encoder.addUnsignedVLQs(
+      Tag.GENERATED_RANGE_START,
+      GeneratedRangeFlags.HAS_DEFINITION,
+      0,
+    ).addSignedVLQs(0, 1).finishItem();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
     const map = createMap(encoder.encode(), []);
 
@@ -426,12 +490,13 @@ describe("decode", () => {
 
   it("ignores if GENERATED_RANGE_START.definition is not a valid original scope in lax mode", () => {
     const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_START, 0, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.ORIGINAL_SCOPE_END, 1, 0).finishItem();
     encoder.addUnsignedVLQs(
       Tag.GENERATED_RANGE_START,
       GeneratedRangeFlags.HAS_DEFINITION,
       0,
-      1,
-    ).finishItem();
+    ).addSignedVLQs(0, 1).finishItem();
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 2).finishItem();
     const map = createMap(encoder.encode(), []);
 
@@ -439,6 +504,34 @@ describe("decode", () => {
 
     assertExists(info.ranges[0]);
     assertStrictEquals(info.ranges[0].originalScope, undefined);
+  });
+
+  it("decodes cross-source and same-source GENERATED_RANGE_START.definition indices", () => {
+    const scopes = new ScopeInfoBuilder()
+      .startSource()
+      .startScope(0, 0, { key: "s0_root" })
+      .startScope(1, 0, { key: "s0_child" })
+      .endScope(2, 0)
+      .endScope(3, 0)
+      .endSource()
+      .startSource()
+      .startScope(0, 0, { key: "s1_root" })
+      .startScope(1, 0, { key: "s1_child" })
+      .endScope(2, 0)
+      .endScope(3, 0)
+      .endSource()
+      .startRange(0, 0, { scopeKey: "s1_child" })
+      .startRange(0, 2, { scopeKey: "s1_root" })
+      .endRange(0, 4)
+      .startRange(0, 5, { scopeKey: "s0_child" })
+      .endRange(0, 8)
+      .endRange(0, 10)
+      .build();
+
+    const map = encode(scopes);
+    const decoded = decode(map, { mode: DecodeMode.STRICT });
+
+    assertEquals(decoded, { ...scopes, hasVariableAndBindingInfo: false });
   });
 
   it("throws for free GENERATED_RANGE_CALL_SITE items in strict mode", () => {
@@ -492,8 +585,7 @@ describe("decode", () => {
       Tag.GENERATED_RANGE_START,
       GeneratedRangeFlags.HAS_DEFINITION,
       0,
-      0,
-    ).addSignedVLQs(0).finishItem();
+    ).addSignedVLQs(0, 0).finishItem();
     // Initial binding for the variable is "bar" (index 2).
     encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_BINDINGS, 2).finishItem();
 
