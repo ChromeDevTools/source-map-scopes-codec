@@ -124,7 +124,7 @@ class Decoder {
   readonly #names: string[];
   readonly #mode: DecodeMode;
 
-  #scopes: (OriginalScope | null)[] = [];
+  #scopes: (OriginalScope[] | null)[] = [];
   #ranges: GeneratedRange[] = [];
 
   readonly #scopeState = { ...DEFAULT_SCOPE_STATE };
@@ -384,7 +384,7 @@ class Decoder {
       scope.parent = parent;
       parent.children.push(scope);
     } else {
-      this.#scopes.push(scope);
+      this.#scopes.push([scope]);
       this.#scopeState.line = 0;
       this.#scopeState.column = 0;
     }

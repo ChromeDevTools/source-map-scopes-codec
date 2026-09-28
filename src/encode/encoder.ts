@@ -52,10 +52,14 @@ export class Encoder {
 
   encode(): string {
     this.#encodedItems = [];
-    this.#info.scopes.forEach((scope) => {
+    this.#info.scopes.forEach((scopes) => {
+      if (scopes === null) {
+        this.#encodedItems.push(EncodedTag.EMPTY);
+        return;
+      }
       this.#scopeState.line = 0;
       this.#scopeState.column = 0;
-      this.#encodeOriginalScope(scope);
+      scopes.forEach((scope) => this.#encodeOriginalScope(scope));
     });
     this.#info.ranges.forEach((range) => {
       this.#encodeGeneratedRange(range);
@@ -64,12 +68,7 @@ export class Encoder {
     return this.#encodedItems.join(",");
   }
 
-  #encodeOriginalScope(scope: OriginalScope | null): void {
-    if (scope === null) {
-      this.#encodedItems.push(EncodedTag.EMPTY);
-      return;
-    }
-
+  #encodeOriginalScope(scope: OriginalScope): void {
     this.#encodeOriginalScopeStart(scope);
     this.#encodeOriginalScopeVariables(scope);
     scope.children.forEach((child) => this.#encodeOriginalScope(child));

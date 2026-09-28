@@ -62,7 +62,10 @@ function createMap(scopes: string, names: string[]): SourceMapJson {
 
 describe("decode", () => {
   it("handles unknown items interspersed in an known items", () => {
-    const info = new ScopeInfoBuilder().startScope(0, 0).endScope(10, 0)
+    const info = new ScopeInfoBuilder().startSource().startScope(0, 0).endScope(
+      10,
+      0,
+    ).endSource()
       .build();
     const map = encode(info);
 
@@ -81,7 +84,10 @@ describe("decode", () => {
   });
 
   it("handles trailing VLQs in ORIGINAL_SCOPE_START items", () => {
-    const info = new ScopeInfoBuilder().startScope(0, 0).endScope(10, 0)
+    const info = new ScopeInfoBuilder().startSource().startScope(0, 0).endScope(
+      10,
+      0,
+    ).endSource()
       .build();
     const map = encode(info);
 
@@ -96,7 +102,10 @@ describe("decode", () => {
   });
 
   it("handles trailing VLQs in ORIGINAL_SCOPE_END items", () => {
-    const info = new ScopeInfoBuilder().startScope(0, 0).endScope(10, 0)
+    const info = new ScopeInfoBuilder().startSource().startScope(0, 0).endScope(
+      10,
+      0,
+    ).endSource()
       .build();
     const map = encode(info);
 
@@ -123,8 +132,8 @@ describe("decode", () => {
 
     const info = decode(map);
 
-    assertExists(info.scopes[0]);
-    assertStrictEquals(info.scopes[0].name, "");
+    assertExists(info.scopes[0]?.[0]);
+    assertStrictEquals(info.scopes[0][0].name, "");
   });
 
   it("ignores wrong 'kind' indices in lax mode", () => {
@@ -140,8 +149,8 @@ describe("decode", () => {
 
     const info = decode(map);
 
-    assertExists(info.scopes[0]);
-    assertStrictEquals(info.scopes[0].kind, "");
+    assertExists(info.scopes[0]?.[0]);
+    assertStrictEquals(info.scopes[0][0].kind, "");
   });
 
   it("throws in strict mode when the scopes string ends mid-VLQ", () => {
@@ -321,7 +330,7 @@ describe("decode", () => {
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
-    assertEquals(info.scopes[0]?.variables, ["foo", ""]);
+    assertEquals(info.scopes[0]?.[0]?.variables, ["foo", ""]);
   });
 
   it("ignores if ORIGINAL_SCOPE_VARIABLES indices are out-of-bounds (lower) in lax mode", () => {
@@ -334,7 +343,7 @@ describe("decode", () => {
 
     const info = decode(map, { mode: DecodeMode.LAX });
 
-    assertEquals(info.scopes[0]?.variables, ["foo", ""]);
+    assertEquals(info.scopes[0]?.[0]?.variables, ["foo", ""]);
   });
 
   it("throws if ORIGINAL_SCOPE_START.name is out-of-bounds in strict mode", () => {
@@ -623,10 +632,10 @@ describe("decode", () => {
   describe("hasVariableAndBindingInfo", () => {
     it("is 'false' when no variables/bindings are present", () => {
       const map = encode(
-        new ScopeInfoBuilder().startScope(0, 0, {
+        new ScopeInfoBuilder().startSource().startScope(0, 0, {
           isStackFrame: true,
           key: "fn",
-        }).endScope(10, 0).startRange(0, 0, {
+        }).endScope(10, 0).endSource().startRange(0, 0, {
           scopeKey: "fn",
           isStackFrame: true,
         }).endRange(0, 10).build(),
@@ -639,11 +648,11 @@ describe("decode", () => {
 
     it("is 'false' when only variables are present", () => {
       const map = encode(
-        new ScopeInfoBuilder().startScope(0, 0, {
+        new ScopeInfoBuilder().startSource().startScope(0, 0, {
           isStackFrame: true,
           key: "fn",
           variables: ["foo", "bar"],
-        }).endScope(10, 0).startRange(0, 0, {
+        }).endScope(10, 0).endSource().startRange(0, 0, {
           scopeKey: "fn",
           isStackFrame: true,
         }).endRange(0, 10).build(),
@@ -656,11 +665,11 @@ describe("decode", () => {
 
     it("is 'true' when variables/bindings are present", () => {
       const map = encode(
-        new ScopeInfoBuilder().startScope(0, 0, {
+        new ScopeInfoBuilder().startSource().startScope(0, 0, {
           isStackFrame: true,
           key: "fn",
           variables: ["foo", "bar"],
-        }).endScope(10, 0).startRange(0, 0, {
+        }).endScope(10, 0).endSource().startRange(0, 0, {
           scopeKey: "fn",
           isStackFrame: true,
           values: ["n", "m"],
