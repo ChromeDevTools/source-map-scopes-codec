@@ -26,76 +26,96 @@ describe("round trip", () => {
     builder = new ScopeInfoBuilder();
   });
 
-  it("handles null OriginalScopes", () => {
-    builder.addNullScope().addNullScope().addNullScope();
+  it("handles null sources", () => {
+    builder.addNullSource().addNullSource().addNullSource();
 
     assertCodec(builder.build());
   });
 
   it("handles a single top-level OriginalScope", () => {
-    builder.startScope(0, 0).endScope(10, 1);
+    builder.startSource().startScope(0, 0).endScope(10, 1).endSource();
 
     assertCodec(builder.build());
   });
 
   it("handles two simple top-level OriginalScopes", () => {
-    builder.startScope(0, 0).endScope(10, 1);
-    builder.startScope(0, 0).endScope(15, 1);
+    builder.startSource().startScope(0, 0).endScope(10, 1).endSource();
+    builder.startSource().startScope(0, 0).endScope(15, 1).endSource();
 
     assertCodec(builder.build());
   });
 
   it("handles a simple nested OriginalScope", () => {
-    builder.startScope(0, 0).startScope(5, 1).endScope(10, 1).endScope(15, 0);
+    builder.startSource().startScope(0, 0).startScope(5, 1).endScope(10, 1)
+      .endScope(15, 0).endSource();
 
     assertCodec(builder.build());
   });
 
   it("handles multiple children of a top-level scope", () => {
-    builder.startScope(0, 0).startScope(5, 1).endScope(10, 1).startScope(15, 0)
-      .endScope(20, 0).endScope(25, 1);
+    builder.startSource().startScope(0, 0).startScope(5, 1).endScope(10, 1)
+      .startScope(15, 0)
+      .endScope(20, 0).endScope(25, 1).endSource();
 
     assertCodec(builder.build());
   });
 
   it("handles scopes that start on the same line", () => {
-    builder.startScope(0, 5).startScope(0, 10).endScope(10, 5).endScope(10, 10);
+    builder.startSource().startScope(0, 5).startScope(0, 10).endScope(10, 5)
+      .endScope(10, 10).endSource();
 
     assertCodec(builder.build());
   });
 
   it("handles scope names", () => {
-    builder.startScope(0, 0, { name: "foo" }).startScope(10, 0, { name: "bar" })
-      .endScope(20, 0).endScope(30, 0);
+    builder.startSource().startScope(0, 0, { name: "foo" }).startScope(10, 0, {
+      name: "bar",
+    })
+      .endScope(20, 0).endScope(30, 0).endSource();
 
     assertCodec(builder.build());
   });
 
   it("handles scope kinds", () => {
-    builder.startScope(0, 0, { kind: "Global" }).startScope(10, 0, {
-      kind: "Function",
-    }).endScope(20, 0).endScope(30, 0);
+    builder.startSource().startScope(0, 0, { kind: "Global" }).startScope(
+      10,
+      0,
+      {
+        kind: "Function",
+      },
+    ).endScope(20, 0).endScope(30, 0).endSource();
 
     assertCodec(builder.build());
   });
 
   it("handles names/kinds across multiple top-level scopes", () => {
-    builder.startScope(0, 0, { kind: "Global" }).startScope(10, 5, {
-      kind: "Function",
-      name: "foo",
-    })
-      .endScope(20, 0).endScope(30, 0);
-    builder.startScope(0, 0, { kind: "Global" }).startScope(10, 5, {
-      kind: "Function",
-      name: "bar",
-    })
-      .endScope(20, 0).endScope(30, 0);
+    builder.startSource().startScope(0, 0, { kind: "Global" }).startScope(
+      10,
+      5,
+      {
+        kind: "Function",
+        name: "foo",
+      },
+    )
+      .endScope(20, 0).endScope(30, 0).endSource();
+    builder.startSource().startScope(0, 0, { kind: "Global" }).startScope(
+      10,
+      5,
+      {
+        kind: "Function",
+        name: "bar",
+      },
+    )
+      .endScope(20, 0).endScope(30, 0).endSource();
 
     assertCodec(builder.build());
   });
 
   it("handles isStackFrame flag on scopes", () => {
-    builder.startScope(0, 0, { isStackFrame: true }).endScope(10, 0);
+    builder.startSource().startScope(0, 0, { isStackFrame: true }).endScope(
+      10,
+      0,
+    ).endSource();
 
     assertCodec(builder.build());
   });
@@ -125,18 +145,21 @@ describe("round trip", () => {
   });
 
   it("handles a single GeneratedRange with a definition scope", () => {
-    builder.startScope(0, 0, { key: 0 }).endScope(10, 0).startRange(0, 0, {
-      scopeKey: 0,
-    })
+    builder.startSource().startScope(0, 0, { key: 0 }).endScope(10, 0)
+      .endSource().startRange(0, 0, {
+        scopeKey: 0,
+      })
       .endRange(0, 10);
 
     assertCodec(builder.build());
   });
 
   it("handles multiple GeneratedRanges with different definition scopes", () => {
-    builder.startScope(0, 0, { key: 0 }).endScope(10, 0).startScope(0, 0, {
-      key: 1,
-    }).endScope(20, 0)
+    builder.startSource().startScope(0, 0, { key: 0 }).endScope(10, 0)
+      .endSource()
+      .startSource().startScope(0, 0, {
+        key: 1,
+      }).endScope(20, 0).endSource()
       .startRange(0, 0)
       .startRange(0, 10, { scopeKey: 0 })
       .endRange(0, 40)
@@ -160,17 +183,21 @@ describe("round trip", () => {
   });
 
   it("handles OriginalScope variables", () => {
-    builder.startScope(0, 0, { variables: ["foo", "bar"] }).startScope(10, 0, {
-      variables: ["local1", "local2"],
-    }).endScope(20, 0).endScope(30, 0);
+    builder.startSource().startScope(0, 0, { variables: ["foo", "bar"] })
+      .startScope(10, 0, {
+        variables: ["local1", "local2"],
+      }).endScope(20, 0).endScope(30, 0).endSource();
 
     assertCodec(builder.build());
   });
 
   it("handles value bindings expressions", () => {
-    builder.startScope(0, 0, { variables: ["foo", "bar"], key: "outer" })
+    builder.startSource().startScope(0, 0, {
+      variables: ["foo", "bar"],
+      key: "outer",
+    })
       .startScope(10, 0, { variables: ["local1", "local2"], key: "inner" })
-      .endScope(20, 0).endScope(30, 0)
+      .endScope(20, 0).endScope(30, 0).endSource()
       .startRange(0, 0, { scopeKey: "outer", values: ["f", "b"] }).startRange(
         0,
         10,
@@ -181,9 +208,13 @@ describe("round trip", () => {
   });
 
   it("handles callSites for inlined ranges", () => {
-    builder.startScope(0, 0, { key: "global" }).startScope(10, 0, {
-      key: "function",
-    }).endScope(20, 0).endScope(30, 0)
+    builder.startSource().startScope(0, 0, { key: "global" }).startScope(
+      10,
+      0,
+      {
+        key: "function",
+      },
+    ).endScope(20, 0).endScope(30, 0).endSource()
       .startRange(0, 0, { scopeKey: "global" })
       .startRange(0, 10, {
         scopeKey: "function",
@@ -206,10 +237,10 @@ describe("round trip", () => {
   });
 
   it("handles sub-range bindings", () => {
-    builder.startScope(0, 0, {
+    builder.startSource().startScope(0, 0, {
       key: "scope",
       variables: ["v1", "v2", "v3", "v4"],
-    }).endScope(10, 0);
+    }).endScope(10, 0).endSource();
 
     builder.startRange(0, 0, {
       scopeKey: "scope",
@@ -273,7 +304,8 @@ describe("round trip", () => {
 
   // Regression test for issue #1.
   it("handles sub-ranges correctly when the range has children", () => {
-    builder.startScope(0, 0, { variables: ["x"], key: "root" }).endScope(1, 19)
+    builder.startSource().startScope(0, 0, { variables: ["x"], key: "root" })
+      .endScope(1, 19).endSource()
       .startRange(0, 0, {
         scopeKey: "root",
         values: [[{

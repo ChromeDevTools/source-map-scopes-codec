@@ -13,8 +13,14 @@ describe("SafeScopeInfoBuilder", () => {
     builder = new SafeScopeInfoBuilder();
   });
 
+  it("throws when trying to build the info without closing a source", () => {
+    builder.startSource();
+
+    assertThrows(() => builder.build());
+  });
+
   it("throws when trying to build the info without closing OriginalScopes", () => {
-    builder.startScope(0, 0);
+    builder.startSource().startScope(0, 0);
 
     assertThrows(() => builder.build());
   });
@@ -25,19 +31,47 @@ describe("SafeScopeInfoBuilder", () => {
     assertThrows(() => builder.build());
   });
 
-  it("throws when trying to add a null scope with open OriginalScopes", () => {
-    builder.startScope(0, 0);
+  it("throws when trying to add a null source with an open source", () => {
+    builder.startSource();
 
-    assertThrows(() => builder.addNullScope());
+    assertThrows(() => builder.addNullSource());
   });
 
-  it("throws when trying t add a null scope with open GeneratedRanges", () => {
+  it("throws when trying to add a null source with open OriginalScopes", () => {
+    builder.startSource().startScope(0, 0);
+
+    assertThrows(() => builder.addNullSource());
+  });
+
+  it("throws when trying to add a null source with open GeneratedRanges", () => {
     builder.startRange(0, 0);
 
-    assertThrows(() => builder.addNullScope());
+    assertThrows(() => builder.addNullSource());
+  });
+
+  describe("startSource / endSource", () => {
+    it("throws when trying to start a source while another source is open", () => {
+      builder.startSource();
+
+      assertThrows(() => builder.startSource());
+    });
+
+    it("throws when trying to end a source when no source is open", () => {
+      assertThrows(() => builder.endSource());
+    });
+
+    it("throws when trying to end a source while a scope is open", () => {
+      builder.startSource().startScope(0, 0);
+
+      assertThrows(() => builder.endSource());
+    });
   });
 
   describe("startScope", () => {
+    it("throws when trying to start a scope without an open source", () => {
+      assertThrows(() => builder.startScope(0, 0));
+    });
+
     it("throws when trying to start a scope while building a range", () => {
       builder.startRange(0, 0);
 
@@ -45,19 +79,25 @@ describe("SafeScopeInfoBuilder", () => {
     });
 
     it("throws when trying to start a scope that precedes the current scope", () => {
-      builder.startScope(10, 0);
+      builder.startSource().startScope(10, 0);
 
       assertThrows(() => builder.startScope(5, 0));
     });
 
     it("throws when trying to start a scope that overlaps with the preceding sibling scope", () => {
-      builder.startScope(0, 0).startScope(5, 0).endScope(10, 0);
+      builder.startSource().startScope(0, 0).startScope(5, 0).endScope(10, 0);
+
+      assertThrows(() => builder.startScope(7, 0));
+    });
+
+    it("throws when trying to start a root scope that overlaps with the preceding root scope in the same source", () => {
+      builder.startSource().startScope(0, 0).endScope(10, 0);
 
       assertThrows(() => builder.startScope(7, 0));
     });
 
     it("allows starting a scope on the preceding scope' end", () => {
-      builder.startScope(0, 0).endScope(10, 5);
+      builder.startSource().startScope(0, 0).endScope(10, 5);
 
       builder.startScope(10, 5);
     });
@@ -117,21 +157,27 @@ describe("SafeScopeInfoBuilder", () => {
     });
 
     it("allows scopes with zero length", () => {
-      builder.startScope(10, 0);
+      builder.startSource().startScope(10, 0);
 
       builder.endScope(10, 0);
     });
 
     it("throws when scope end precedes scope start", () => {
-      builder.startScope(10, 0);
+      builder.startSource().startScope(10, 0);
 
       assertThrows(() => builder.endScope(5, 0));
     });
   });
 
   describe("startRange", () => {
+    it("throws when trying to start a range while a source is open", () => {
+      builder.startSource();
+
+      assertThrows(() => builder.startRange(0, 0));
+    });
+
     it("throws when trying to start a range while building a scope", () => {
-      builder.startScope(0, 0);
+      builder.startSource().startScope(0, 0);
 
       assertThrows(() => builder.startRange(0, 0));
     });
@@ -177,8 +223,10 @@ describe("SafeScopeInfoBuilder", () => {
     });
 
     it("throws when 'values' length does not match OriginalScope.variables length (via scope)", () => {
-      const scope = builder.startScope(0, 0, { variables: ["foo", "bar"] })
-        .endScope(10, 0).lastScope()!;
+      const scope = builder.startSource().startScope(0, 0, {
+        variables: ["foo", "bar"],
+      })
+        .endScope(10, 0).endSource().lastScope()!;
 
       assertThrows(() =>
         builder.startRange(0, 0, { scope, values: ["a", null, "b"] })
@@ -186,8 +234,11 @@ describe("SafeScopeInfoBuilder", () => {
     });
 
     it("throws when 'values' length does not match OriginalScope.variables length (via scopeKey)", () => {
-      builder.startScope(0, 0, { variables: ["foo", "bar"], key: "my key" })
-        .endScope(10, 0);
+      builder.startSource().startScope(0, 0, {
+        variables: ["foo", "bar"],
+        key: "my key",
+      })
+        .endScope(10, 0).endSource();
 
       assertThrows(() =>
         builder.startRange(0, 0, {
@@ -200,13 +251,14 @@ describe("SafeScopeInfoBuilder", () => {
 
   describe("setRangeDefinitionScope", () => {
     it("throws when no range is open", () => {
-      const scope = builder.startScope(0, 0).endScope(10, 0).lastScope()!;
+      const scope = builder.startSource().startScope(0, 0).endScope(10, 0)
+        .endSource().lastScope()!;
 
       assertThrows(() => builder.setRangeDefinitionScope(scope));
     });
 
     it("throws while building a scope", () => {
-      const scope = builder.startScope(0, 0).currentScope()!;
+      const scope = builder.startSource().startScope(0, 0).currentScope()!;
 
       assertThrows(() => builder.setRangeDefinitionScope(scope));
     });
@@ -230,7 +282,7 @@ describe("SafeScopeInfoBuilder", () => {
     });
 
     it("throws while building a scope", () => {
-      builder.startScope(0, 0, { key: "my key" });
+      builder.startSource().startScope(0, 0, { key: "my key" });
 
       assertThrows(() => builder.setRangeDefinitionScopeKey("my key"));
     });
@@ -254,7 +306,7 @@ describe("SafeScopeInfoBuilder", () => {
     });
 
     it("throws while building a scope", () => {
-      builder.startScope(0, 0);
+      builder.startSource().startScope(0, 0);
 
       assertThrows(() => builder.setRangeStackFrame(true));
     });
@@ -266,7 +318,7 @@ describe("SafeScopeInfoBuilder", () => {
     });
 
     it("throws while building a scope", () => {
-      builder.startScope(0, 0);
+      builder.startSource().startScope(0, 0);
 
       assertThrows(() => builder.setRangeHidden(true));
     });
@@ -278,7 +330,7 @@ describe("SafeScopeInfoBuilder", () => {
     });
 
     it("throws while building a scope", () => {
-      builder.startScope(0, 0);
+      builder.startSource().startScope(0, 0);
 
       assertThrows(() => builder.setRangeValues(["a", null]));
     });
@@ -290,8 +342,10 @@ describe("SafeScopeInfoBuilder", () => {
     });
 
     it("throws when 'values' length does not match OriginalScope.variables length (via scope)", () => {
-      const scope = builder.startScope(0, 0, { variables: ["foo", "bar"] })
-        .endScope(10, 0).lastScope()!;
+      const scope = builder.startSource().startScope(0, 0, {
+        variables: ["foo", "bar"],
+      })
+        .endScope(10, 0).endSource().lastScope()!;
       builder.startRange(0, 0, { scope });
 
       assertThrows(() => builder.setRangeValues(["a", null, "b"]));
@@ -310,7 +364,7 @@ describe("SafeScopeInfoBuilder", () => {
     });
 
     it("throws while building a scope", () => {
-      builder.startScope(0, 0);
+      builder.startSource().startScope(0, 0);
 
       assertThrows(() =>
         builder.setRangeCallSite({
@@ -341,8 +395,10 @@ describe("SafeScopeInfoBuilder", () => {
 
     describe("sub-range bindings", () => {
       beforeEach(() => {
-        builder.startScope(0, 0, { key: "test-scope", variables: ["foo"] })
-          .endScope(20, 0);
+        builder.startSource()
+          .startScope(0, 0, { key: "test-scope", variables: ["foo"] })
+          .endScope(20, 0)
+          .endSource();
       });
 
       it("allows empty sub-range bindings", () => {

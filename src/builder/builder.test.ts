@@ -17,79 +17,105 @@ describe("ScopeInfoBuilder", () => {
     builder = new ScopeInfoBuilder();
   });
 
-  it("adds null OriginalScopes", () => {
-    const info = builder.addNullScope().addNullScope().build();
+  it("adds null sources", () => {
+    const info = builder.addNullSource().addNullSource().build();
 
     assertEquals(info.scopes, [null, null]);
   });
 
   it("builds simple OriginalScopes", () => {
-    const info = builder.startScope(0, 0).endScope(5, 10).build();
+    const info = builder.startSource().startScope(0, 0).endScope(5, 10)
+      .endSource().build();
 
-    assertEquals(info.scopes[0]?.start, { line: 0, column: 0 });
-    assertEquals(info.scopes[0]?.end, { line: 5, column: 10 });
+    assertEquals(info.scopes[0]?.[0]?.start, { line: 0, column: 0 });
+    assertEquals(info.scopes[0]?.[0]?.end, { line: 5, column: 10 });
+  });
+
+  it("builds multiple root OriginalScopes in a single source", () => {
+    const info = builder.startSource()
+      .startScope(0, 0).endScope(5, 10)
+      .startScope(6, 0).endScope(10, 5)
+      .endSource().build();
+
+    assertStrictEquals(info.scopes[0]?.length, 2);
+    assertEquals(info.scopes[0][0].start, { line: 0, column: 0 });
+    assertEquals(info.scopes[0][0].end, { line: 5, column: 10 });
+    assertEquals(info.scopes[0][1].start, { line: 6, column: 0 });
+    assertEquals(info.scopes[0][1].end, { line: 10, column: 5 });
   });
 
   it("builds a simple nested OriginalScope", () => {
-    const info = builder.startScope(0, 0).startScope(5, 0).endScope(10, 0)
-      .endScope(15, 0).build();
+    const info = builder.startSource().startScope(0, 0).startScope(5, 0)
+      .endScope(10, 0)
+      .endScope(15, 0).endSource().build();
 
-    assertStrictEquals(info.scopes[0]?.children.length, 1);
-    assertEquals(info.scopes[0].children[0].start, { line: 5, column: 0 });
-    assertEquals(info.scopes[0].children[0].end, { line: 10, column: 0 });
+    assertStrictEquals(info.scopes[0]?.[0]?.children.length, 1);
+    assertEquals(info.scopes[0][0].children[0].start, { line: 5, column: 0 });
+    assertEquals(info.scopes[0][0].children[0].end, { line: 10, column: 0 });
 
-    assertStrictEquals(info.scopes[0], info.scopes[0].children[0].parent);
+    assertStrictEquals(
+      info.scopes[0][0],
+      info.scopes[0][0].children[0].parent,
+    );
   });
 
   describe("startScope", () => {
     it("can set the name via option", () => {
-      const info = builder.startScope(0, 0, { name: "foo" }).endScope(5, 0)
-        .build();
+      const info = builder.startSource().startScope(0, 0, { name: "foo" })
+        .endScope(5, 0)
+        .endSource().build();
 
-      assertStrictEquals(info.scopes[0]?.name, "foo");
+      assertStrictEquals(info.scopes[0]?.[0]?.name, "foo");
     });
 
     it("can set kind via option", () => {
-      const info = builder.startScope(0, 0, { kind: "Global" }).endScope(10, 0)
-        .build();
+      const info = builder.startSource().startScope(0, 0, { kind: "Global" })
+        .endScope(10, 0)
+        .endSource().build();
 
-      assertStrictEquals(info.scopes[0]?.kind, "Global");
+      assertStrictEquals(info.scopes[0]?.[0]?.kind, "Global");
     });
 
     it("can set isStackFrame via option", () => {
-      const info = builder.startScope(0, 0, { isStackFrame: true }).endScope(
+      const info = builder.startSource().startScope(0, 0, {
+        isStackFrame: true,
+      }).endScope(
         10,
         0,
-      ).build();
+      ).endSource().build();
 
-      assertStrictEquals(info.scopes[0]?.isStackFrame, true);
+      assertStrictEquals(info.scopes[0]?.[0]?.isStackFrame, true);
     });
 
     it("can set variables via option", () => {
-      const info = builder.startScope(0, 0, { variables: ["a", "b"] }).endScope(
+      const info = builder.startSource().startScope(0, 0, {
+        variables: ["a", "b"],
+      }).endScope(
         10,
         0,
-      ).build();
+      ).endSource().build();
 
-      assertEquals(info.scopes[0]?.variables, ["a", "b"]);
+      assertEquals(info.scopes[0]?.[0]?.variables, ["a", "b"]);
     });
 
     it("copies the variables passed via options", () => {
       const variables = ["a", "b"];
-      const info = builder.startScope(0, 0, { variables }).endScope(10, 0)
-        .build();
+      const info = builder.startSource().startScope(0, 0, { variables })
+        .endScope(10, 0)
+        .endSource().build();
       variables.push("c");
 
-      assertEquals(info.scopes[0]?.variables, ["a", "b"]);
+      assertEquals(info.scopes[0]?.[0]?.variables, ["a", "b"]);
     });
   });
 
   describe("setScopeName", () => {
     it("sets the name", () => {
-      const info = builder.startScope(0, 0).setScopeName("foo").endScope(5, 0)
-        .build();
+      const info = builder.startSource().startScope(0, 0).setScopeName("foo")
+        .endScope(5, 0)
+        .endSource().build();
 
-      assertStrictEquals(info.scopes[0]?.name, "foo");
+      assertStrictEquals(info.scopes[0]?.[0]?.name, "foo");
     });
 
     it("does nothing when no scope is open", () => {
@@ -99,12 +125,13 @@ describe("ScopeInfoBuilder", () => {
 
   describe("setScopeKind", () => {
     it("sets the kind", () => {
-      const info = builder.startScope(0, 0).setScopeKind("Global").endScope(
-        20,
-        0,
-      ).build();
+      const info = builder.startSource().startScope(0, 0).setScopeKind("Global")
+        .endScope(
+          20,
+          0,
+        ).endSource().build();
 
-      assertStrictEquals(info.scopes[0]?.kind, "Global");
+      assertStrictEquals(info.scopes[0]?.[0]?.kind, "Global");
     });
 
     it("does nothing when no scope is open", () => {
@@ -114,31 +141,38 @@ describe("ScopeInfoBuilder", () => {
 
   describe("setScopeStackFrame", () => {
     it("sets the isStackFrame flag", () => {
-      const info = builder.startScope(0, 0).setScopeStackFrame(true).endScope(
+      const info = builder.startSource().startScope(0, 0).setScopeStackFrame(
+        true,
+      ).endScope(
         10,
         0,
       )
-        .build();
+        .endSource().build();
 
-      assertStrictEquals(info.scopes[0]?.isStackFrame, true);
+      assertStrictEquals(info.scopes[0]?.[0]?.isStackFrame, true);
     });
   });
 
   describe("setScopeVariables", () => {
     it("sets variables", () => {
-      const info = builder.startScope(0, 0).setScopeVariables(["a", "b"])
-        .endScope(10, 0).build();
+      const info = builder.startSource().startScope(0, 0).setScopeVariables([
+        "a",
+        "b",
+      ])
+        .endScope(10, 0).endSource().build();
 
-      assertEquals(info.scopes[0]?.variables, ["a", "b"]);
+      assertEquals(info.scopes[0]?.[0]?.variables, ["a", "b"]);
     });
 
     it("creates a copy of the variables", () => {
       const variables = ["a", "b"];
-      const info = builder.startScope(0, 0).setScopeVariables(variables)
-        .endScope(10, 0).build();
+      const info = builder.startSource().startScope(0, 0).setScopeVariables(
+        variables,
+      )
+        .endScope(10, 0).endSource().build();
       variables.push("c");
 
-      assertEquals(info.scopes[0]?.variables, ["a", "b"]);
+      assertEquals(info.scopes[0]?.[0]?.variables, ["a", "b"]);
     });
   });
 
@@ -168,20 +202,24 @@ describe("ScopeInfoBuilder", () => {
 
   describe("startRange", () => {
     it("sets the definition scope when it's provided as a number", () => {
-      const info = builder.startScope(0, 0, { key: 0 }).endScope(10, 0)
+      const info = builder.startSource().startScope(0, 0, { key: 0 }).endScope(
+        10,
+        0,
+      ).endSource()
         .startRange(0, 0, {
           scopeKey: 0,
         }).endRange(0, 10).build();
 
-      assertStrictEquals(info.scopes[0], info.ranges[0].originalScope);
+      assertStrictEquals(info.scopes[0]?.[0], info.ranges[0].originalScope);
     });
 
     it("sets the definition scope when it's provided directly", () => {
-      const scope = builder.startScope(0, 0).endScope(10, 0).lastScope();
+      const scope = builder.startSource().startScope(0, 0).endScope(10, 0)
+        .endSource().lastScope();
       const info = builder.startRange(0, 0, { scope: scope! }).endRange(0, 10)
         .build();
 
-      assertStrictEquals(info.scopes[0], info.ranges[0].originalScope);
+      assertStrictEquals(info.scopes[0]?.[0], info.ranges[0].originalScope);
       assertStrictEquals(info.ranges[0].originalScope, scope);
     });
 
@@ -225,27 +263,30 @@ describe("ScopeInfoBuilder", () => {
 
   describe("setRangeDefinitionScope", () => {
     it("sets the definition scope when it's provided directly", () => {
-      const scope = builder.startScope(0, 0).endScope(10, 0).lastScope()!;
+      const scope = builder.startSource().startScope(0, 0).endScope(10, 0)
+        .endSource().lastScope()!;
       const info = builder.startRange(0, 0).setRangeDefinitionScope(scope)
         .endRange(0, 10).build();
 
-      assertStrictEquals(info.scopes[0], info.ranges[0].originalScope);
+      assertStrictEquals(info.scopes[0]?.[0], info.ranges[0].originalScope);
       assertStrictEquals(info.ranges[0].originalScope, scope);
     });
 
     it("does nothing when no range is on the stack", () => {
-      const scope = builder.startScope(0, 0).endScope(10, 0).lastScope()!;
+      const scope = builder.startSource().startScope(0, 0).endScope(10, 0)
+        .endSource().lastScope()!;
       builder.setRangeDefinitionScope(scope);
     });
   });
 
   describe("setRangeDefinitionScopeKey", () => {
     it("sets the definition scope when it's provided directly", () => {
-      builder.startScope(0, 0, { key: "my key" }).endScope(10, 0);
+      builder.startSource().startScope(0, 0, { key: "my key" }).endScope(10, 0)
+        .endSource();
       const info = builder.startRange(0, 0).setRangeDefinitionScopeKey("my key")
         .endRange(0, 10).build();
 
-      assertStrictEquals(info.ranges[0].originalScope, info.scopes[0]);
+      assertStrictEquals(info.ranges[0].originalScope, info.scopes[0]?.[0]);
     });
 
     it("does nothing when no range is on the stack", () => {
@@ -361,17 +402,21 @@ describe("ScopeInfoBuilder", () => {
 
   describe("scope key", () => {
     it("can set the scope key via options", () => {
-      builder.startScope(0, 0, { key: "my custom key" }).endScope(10, 0);
+      builder.startSource().startScope(0, 0, { key: "my custom key" }).endScope(
+        10,
+        0,
+      ).endSource();
       builder.startRange(0, 0, { scopeKey: "my custom key" }).endRange(0, 10);
       const info = builder.build();
 
-      assertStrictEquals(info.ranges[0].originalScope, info.scopes[0]);
+      assertStrictEquals(info.ranges[0].originalScope, info.scopes[0]?.[0]);
     });
   });
 
   describe("build", () => {
     it("resets accumulated state so a reused builder does not leak across builds", () => {
-      builder.startScope(0, 0, { key: 0 }).endScope(10, 0);
+      builder.startSource().startScope(0, 0, { key: 0 }).endScope(10, 0)
+        .endSource();
       builder.startRange(0, 0, { scopeKey: 0 }).endRange(0, 10);
       builder.build();
 
