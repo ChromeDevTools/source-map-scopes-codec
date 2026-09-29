@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.0](https://github.com/ChromeDevTools/source-map-scopes-codec/compare/@chrome-devtools/source-map-scopes-codec-v0.9.0...@chrome-devtools/source-map-scopes-codec-v1.0.0) (2026-09-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* change SourceMapJson.ranges to string[] segments ([#21](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/21))
+* split scopes and ranges in SourceMapJson and remove EMPTY tag ([#19](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/19))
+* encode and decode RangeDefinition as (sourceIdx, scopeIdx) ([#18](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/18))
+* allow multiple root OriginalScopes per source file ([#16](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/16))
+
+### Features
+
+* allow multiple root OriginalScopes per source file ([#16](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/16)) ([3c24e5c](https://github.com/ChromeDevTools/source-map-scopes-codec/commit/3c24e5c12ef909aac43e9fefab69ff616fe5e2a9))
+* change SourceMapJson.ranges to string[] segments ([#21](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/21)) ([8cc5718](https://github.com/ChromeDevTools/source-map-scopes-codec/commit/8cc5718fc43aa062ba9d46291ec681ff7e47d528))
+* encode and decode RangeDefinition as (sourceIdx, scopeIdx) ([#18](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/18)) ([afc7fe3](https://github.com/ChromeDevTools/source-map-scopes-codec/commit/afc7fe35ee94c6f02c47c439621033d2ce722a0e))
+* split scopes and ranges in SourceMapJson and remove EMPTY tag ([#19](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/19)) ([539aae9](https://github.com/ChromeDevTools/source-map-scopes-codec/commit/539aae943ece3a7dbf6b48ce9f4b47ad25330777))
+
 ## [0.9.0](https://github.com/ChromeDevTools/source-map-scopes-codec/compare/@chrome-devtools/source-map-scopes-codec-v0.8.1...@chrome-devtools/source-map-scopes-codec-v0.9.0) (2026-08-13)
 
 
