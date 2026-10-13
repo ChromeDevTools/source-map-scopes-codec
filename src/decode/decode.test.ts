@@ -16,7 +16,12 @@ import {
 import { encodeSigned, encodeUnsigned } from "../vlq.ts";
 import { decode, DecodeMode } from "./decode.ts";
 import type { IndexSourceMapJson, SourceMapJson } from "../scopes.ts";
-import { GeneratedRangeFlags, OriginalScopeFlags, Tag } from "../codec.ts";
+import {
+  EncodedTag,
+  GeneratedRangeFlags,
+  OriginalScopeFlags,
+  Tag,
+} from "../codec.ts";
 
 class ItemEncoder {
   #encodedItems: string[] = [];
@@ -730,6 +735,7 @@ describe("decode", () => {
     encoder.addUnsignedVLQs(Tag.VENDOR_EXTENSION, 0);
     encoder.finishItem();
     const ext = encoder.encode();
+    assertEquals(ext, "VA");
     const map = createMap({
       scopes: [ext],
       ranges: ext,
@@ -741,6 +747,186 @@ describe("decode", () => {
       ranges: [],
       hasVariableAndBindingInfo: false,
     });
+  });
+
+  it("ignores vendor extensions with trailing VLQs", () => {
+    const map = createMap({
+      scopes: ["VAEFG"],
+      ranges: "VACD",
+      names: ["x_ext_item"],
+    });
+
+    assertEquals(decode(map, { mode: DecodeMode.STRICT }), {
+      scopes: [[]],
+      ranges: [],
+      hasVariableAndBindingInfo: false,
+    });
+  });
+
+  describe("vendor extensions interspersed with known items", () => {
+    /**
+     * Inserts a vendor extension item before, between and after every item of
+     * `encoded`. Every other vendor extension item carries trailing VLQs.
+     */
+    function intersperseVendorExtensions(
+      encoded: string,
+      nameIdx: number,
+    ): string {
+      const plain = EncodedTag.VENDOR_EXTENSION + encodeUnsigned(nameIdx);
+      const withTrailing = plain + encodeUnsigned(42) + encodeSigned(-7) +
+        encodeUnsigned(1000);
+      const items: string[] = [plain];
+      encoded.split(",").forEach((item, i) => {
+        items.push(item, i % 2 === 0 ? withTrailing : plain);
+      });
+      return items.join(",");
+    }
+
+    function buildInfo() {
+      return new ScopeInfoBuilder()
+        .startSource()
+        .startScope(0, 0, {
+          key: "fn",
+          name: "foo",
+          kind: "function",
+          isStackFrame: true,
+          variables: ["a", "b"],
+        })
+        .startScope(2, 4, { key: "block", kind: "block", variables: ["c"] })
+        .endScope(2, 10)
+        .startScope(2, 12, { kind: "block" })
+        .endScope(5, 0)
+        .endScope(20, 0)
+        .startScope(21, 0, { name: "bar" })
+        .endScope(30, 0)
+        .endSource()
+        .addNullSource()
+        .startSource()
+        .startScope(0, 0, { key: "other", variables: ["d"] })
+        .endScope(5, 0)
+        .endSource()
+        .startRange(0, 0, {
+          scopeKey: "fn",
+          isStackFrame: true,
+          values: ["x", null],
+        })
+        .startRange(0, 5, {
+          scopeKey: "block",
+          values: [[
+            {
+              value: "y",
+              from: { line: 0, column: 5 },
+              to: { line: 0, column: 8 },
+            },
+            {
+              value: "z",
+              from: { line: 0, column: 8 },
+              to: { line: 0, column: 15 },
+            },
+          ]],
+        })
+        .endRange(0, 15)
+        .startRange(1, 0, {
+          scopeKey: "other",
+          isHidden: true,
+          values: ["w"],
+          callSite: { sourceIndex: 0, line: 3, column: 2 },
+        })
+        .endRange(1, 20)
+        .endRange(10, 0)
+        .build();
+    }
+
+    it("ignores them between scope items in strict mode", () => {
+      const map = encode(buildInfo());
+      const expected = decode(map, { mode: DecodeMode.STRICT });
+      assertExists(map.scopes);
+      assertEquals(map.scopes.length, 3);
+
+      map.names!.push("x_vendor");
+      const nameIdx = map.names!.length - 1;
+      map.scopes = map.scopes.map((s) =>
+        s === null ? null : intersperseVendorExtensions(s, nameIdx)
+      );
+
+      assertEquals(decode(map, { mode: DecodeMode.STRICT }), expected);
+      assert(expected.hasVariableAndBindingInfo);
+    });
+
+    it("ignores them between range items in strict mode", () => {
+      const map = encode(buildInfo());
+      const expected = decode(map, { mode: DecodeMode.STRICT });
+      assertExists(map.ranges);
+
+      map.names!.push("x_vendor");
+      const nameIdx = map.names!.length - 1;
+      map.ranges = map.ranges.map((r) =>
+        intersperseVendorExtensions(r, nameIdx)
+      );
+
+      assertEquals(decode(map, { mode: DecodeMode.STRICT }), expected);
+      assert(expected.hasVariableAndBindingInfo);
+    });
+
+    it("handles multi-character name indices", () => {
+      const map = encode(buildInfo());
+      const expected = decode(map, { mode: DecodeMode.STRICT });
+      assertExists(map.scopes?.[0]);
+      assertExists(map.ranges?.[0]);
+
+      // Pad "names" so the vendor extension name requires a multi-character VLQ.
+      const nameIdx = 1000;
+      while (map.names!.length < nameIdx) map.names!.push("pad");
+      map.names!.push("x_vendor");
+      assert(encodeUnsigned(nameIdx).length > 1);
+
+      map.scopes[0] = intersperseVendorExtensions(map.scopes[0], nameIdx);
+      map.ranges[0] = intersperseVendorExtensions(map.ranges[0], nameIdx);
+
+      assertEquals(decode(map, { mode: DecodeMode.STRICT }), expected);
+    });
+
+    it("ignores out-of-bounds name indices in strict mode", () => {
+      const map = encode(buildInfo());
+      const expected = decode(map, { mode: DecodeMode.STRICT });
+      assertExists(map.scopes?.[0]);
+      assertExists(map.ranges?.[0]);
+
+      const nameIdx = map.names!.length + 500;
+      map.scopes[0] = intersperseVendorExtensions(map.scopes[0], nameIdx);
+      map.ranges[0] = intersperseVendorExtensions(map.ranges[0], nameIdx);
+
+      assertEquals(decode(map, { mode: DecodeMode.STRICT }), expected);
+    });
+  });
+
+  describe("legacy vendor extension tags", () => {
+    // The spec used to reserve "/" for vendor extensions (tc39/ecma426#278
+    // changed it to "V"). "/" has the continuation bit set, so "/A" decodes
+    // to tag 31. Older versions of this codec emitted 0x63 ("jD") instead.
+    const legacyItems: [string, number][] = [["/A", 31], ["jDA", 0x63]];
+
+    for (const [item, tag] of legacyItems) {
+      it(`throws for '${item}' in scopes in strict mode`, () => {
+        const map = createMap({ scopes: [item], names: ["x_vendor"] });
+
+        assertThrows(
+          () => decode(map, { mode: DecodeMode.STRICT }),
+          Error,
+          `Encountered illegal item tag ${tag}`,
+        );
+      });
+
+      it(`throws for '${item}' in ranges in strict mode`, () => {
+        const map = createMap({ ranges: item, names: ["x_vendor"] });
+
+        assertThrows(
+          () => decode(map, { mode: DecodeMode.STRICT }),
+          Error,
+          `Encountered illegal item tag ${tag}`,
+        );
+      });
+    }
   });
 
   it("throws for invalid item tags in strict mode", () => {
