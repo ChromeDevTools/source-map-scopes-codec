@@ -770,6 +770,69 @@ describe("decode", () => {
     assertEquals(info.ranges[0].end, { line: 0, column: 10 });
   });
 
+  describe("nested index source maps", () => {
+    function nestedIndexMap(depth: number): IndexSourceMapJson {
+      const leaf = encode(
+        new ScopeInfoBuilder().startRange(0, 0).endRange(0, 10).build(),
+      );
+      let map: IndexSourceMapJson = {
+        version: 3,
+        sections: [{ offset: { line: 0, column: 0 }, map: leaf }],
+      };
+      for (let i = 1; i < depth; ++i) {
+        map = {
+          version: 3,
+          // Nested index maps are not allowed by the spec/types.
+          sections: [{
+            offset: { line: 0, column: 0 },
+            map: map as unknown as SourceMapJson,
+          }],
+        };
+      }
+      return map;
+    }
+
+    it("skips nested index maps in lax mode", () => {
+      const map1 = encode(
+        new ScopeInfoBuilder().startRange(0, 0).endRange(0, 10).build(),
+      );
+      const map: IndexSourceMapJson = {
+        version: 3,
+        sections: [
+          { offset: { line: 0, column: 0 }, map: map1 },
+          {
+            offset: { line: 1, column: 0 },
+            map: nestedIndexMap(2) as unknown as SourceMapJson,
+          },
+        ],
+      };
+
+      const info = decode(map, { mode: DecodeMode.LAX });
+
+      assertEquals(info.ranges.length, 1);
+      assertEquals(info.ranges[0].start, { line: 0, column: 0 });
+    });
+
+    it("throws for nested index maps in strict mode", () => {
+      assertThrows(
+        () => decode(nestedIndexMap(2), { mode: DecodeMode.STRICT }),
+        Error,
+        "Index source map sections must not be index maps",
+      );
+    });
+
+    it("does not overflow the stack for deeply nested index maps", () => {
+      const map = nestedIndexMap(100_000);
+
+      assertEquals(decode(map, { mode: DecodeMode.LAX }).ranges, []);
+      assertThrows(
+        () => decode(map, { mode: DecodeMode.STRICT }),
+        Error,
+        "Index source map sections must not be index maps",
+      );
+    });
+  });
+
   it("ignores vendor extensions", () => {
     const encoder = new ItemEncoder();
     encoder.addUnsignedVLQs(Tag.VENDOR_EXTENSION, 0);
