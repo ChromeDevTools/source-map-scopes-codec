@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0](https://github.com/ChromeDevTools/source-map-scopes-codec/compare/@chrome-devtools/source-map-scopes-codec-v1.0.0...@chrome-devtools/source-map-scopes-codec-v2.0.0) (2026-10-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* change vendor extension tag to 'V' ([#22](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/22))
+
+### Features
+
+* change vendor extension tag to 'V' ([#22](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/22)) ([33baa6f](https://github.com/ChromeDevTools/source-map-scopes-codec/commit/33baa6f06881fa22267e70e1c561390f24dfa5fe))
+
+
+### Bug Fixes
+
+* bounds-check GENERATED_RANGE_SUBRANGE_BINDING variable indices ([#24](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/24)) ([4837b2d](https://github.com/ChromeDevTools/source-map-scopes-codec/commit/4837b2de03151447d824fede973d555c5fe1b805))
+* don't recurse into nested index source maps ([#25](https://github.com/ChromeDevTools/source-map-scopes-codec/issues/25)) ([51a6dae](https://github.com/ChromeDevTools/source-map-scopes-codec/commit/51a6dae0a9296235082650dabbbd30563c0cc684))
+
 ## [1.0.0](https://github.com/ChromeDevTools/source-map-scopes-codec/compare/@chrome-devtools/source-map-scopes-codec-v0.9.0...@chrome-devtools/source-map-scopes-codec-v1.0.0) (2026-09-28)
 
 
