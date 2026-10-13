@@ -34,6 +34,7 @@ import { TokenIterator } from "../vlq.ts";
  *   - Encountering ORIGINAL_SCOPE_VARIABLES items outside a surrounding scope START/END.
  *   - Encountering GENERATED_RANGE_BINDINGS items outside a surrounding range START/END.
  *   - Miss-matches between the number of variables in a scope vs the number of value expressions in the ranges.
+ *   - GENERATED_RANGE_SUBRANGE_BINDING items whose variable index is out of bounds of the range's bindings.
  *   - Out-of-bound indices into the "names" array.
  */
 export const enum DecodeMode {
@@ -622,6 +623,16 @@ class Decoder {
     if (!subRangeBindings) return;
 
     for (const [variableIndex, bindings] of subRangeBindings) {
+      // Sub-range bindings can only refine an existing binding from the
+      // GENERATED_RANGE_BINDINGS item. Writing to an arbitrary (attacker
+      // controlled) index would turn `range.values` into a huge sparse array.
+      if (variableIndex < 0 || variableIndex >= range.values.length) {
+        this.#throwInStrictMode(
+          "GENERATED_RANGE_SUBRANGE_BINDING variable index out of bounds",
+        );
+        continue;
+      }
+
       const value = range.values[variableIndex];
       const subRanges: SubRangeBinding[] = [];
       range.values[variableIndex] = subRanges;

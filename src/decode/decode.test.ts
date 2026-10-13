@@ -603,6 +603,46 @@ describe("decode", () => {
     );
   });
 
+  it("throws for out-of-bounds GENERATED_RANGE_SUBRANGE_BINDING variable indices in strict mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 1_000_000)
+      .finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 0).finishItem();
+    const map = createMap({ ranges: encoder.encode() });
+
+    assertThrows(
+      () => decode(map, { mode: DecodeMode.STRICT }),
+      Error,
+      "GENERATED_RANGE_SUBRANGE_BINDING variable index out of bounds",
+    );
+  });
+
+  it("ignores out-of-bounds GENERATED_RANGE_SUBRANGE_BINDING variable indices in lax mode", () => {
+    const encoder = new ItemEncoder();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_START, 0, 0).finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_SUBRANGE_BINDING, 1_000_000)
+      .finishItem();
+    encoder.addUnsignedVLQs(Tag.GENERATED_RANGE_END, 0).finishItem();
+    const map = createMap({ ranges: encoder.encode() });
+
+    const info = decode(map, { mode: DecodeMode.LAX });
+
+    assertExists(info.ranges[0]);
+    assertEquals(info.ranges[0].values, []);
+  });
+
+  it("ignores huge GENERATED_RANGE_SUBRANGE_BINDING variable indices without hanging", () => {
+    // "H//////B" encodes variable index 2^31 - 1. This used to create a sparse
+    // `values` array of length 2^31 and iterate every hole.
+    const map = createMap({ ranges: "EAA,H//////B,FA" });
+
+    const info = decode(map, { mode: DecodeMode.LAX });
+
+    assertExists(info.ranges[0]);
+    assertEquals(info.ranges[0].values, []);
+  });
+
   it("ignores multiple GENERATED_RANGE_SUBRANGE_BINDING items for the same variable in lax mode", () => {
     const scopeEncoder = new ItemEncoder();
     // Original scope with 1 variable.
